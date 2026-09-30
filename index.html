@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en-GB" class="splashing">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07090d">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Phoenix trading journal — trades, calendar and balance, synced between your devices.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Phoenix">
+<meta name="application-name" content="Phoenix">
+<link rel="preconnect" href="https://rjkfchavallqfajmpbtb.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<title>Phoenix · Trading Journal</title>
+<style>
+  :root{
+    --bg:#07090d;--bg2:#0b0f15;--panel:#0f141c;--panel2:#141b25;--panel3:#1a2230;--border:#1d2632;--border2:#2a3544;
+    --text:#e6ebf2;--muted:#8792a4;--dim:#5b6678;
+    --green:#16c784;--green-soft:rgba(22,199,132,.13);--green-line:rgba(22,199,132,.45);
+    --red:#f0464f;--red-soft:rgba(240,70,79,.13);--red-line:rgba(240,70,79,.45);
+    --accent:#3d7bfd;--blue:#5b9bff;--blue-soft:rgba(91,155,255,.14);--accent-soft:rgba(61,123,253,.16);--gold:#e7b53c;
+    --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+    --sans:Inter,"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --radius:12px}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:radial-gradient(1200px 500px at 15% -10%,#101a2b 0%,transparent 60%),var(--bg);background-attachment:fixed;
+    color:var(--text);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+  button{font-family:inherit}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ---------- top bar ---------- */
+  .topbar{position:sticky;top:0;z-index:5;background:rgba(7,9,13,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border)}
+  .topbar-in{max-width:1480px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 20px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.14em;font-size:13px;white-space:nowrap}
+  .brand .mark{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--gold),#b4801c);color:#1a1204;font-size:13px;letter-spacing:0}
+  .brand small{color:var(--dim);font-weight:600;letter-spacing:.12em}
+  .spacer{flex:1}
+  .status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);white-space:nowrap}
+  .status i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .status.off i{background:var(--dim);box-shadow:none}
+  #clock{font-family:var(--mono);font-size:15px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.04em;
+    padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel)}
+  .btn{background:var(--panel2);border:1px solid var(--border2);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer;
+    font-size:13px;font-weight:500;white-space:nowrap}
+  .btn:hover{border-color:var(--accent);background:var(--panel3)}
+  .btn[disabled]{opacity:.4;cursor:default;border-color:var(--border2);background:var(--panel2)}
+
+  /* ---------- ticker tape ---------- */
+  .tape{border-bottom:1px solid var(--border);background:var(--bg2);height:46px;position:relative;overflow:hidden}
+  .tape .tv-host{height:46px}
+  .tape .tv-fallback{font-size:12px;flex-direction:row;gap:10px}
+
+  /* ---------- layout ---------- */
+  .layout{max-width:1480px;margin:0 auto;padding:18px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:18px;align-items:start}
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 10px 30px rgba(0,0,0,.25)}
+  .card-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+  .card-h h2{margin:0;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+  .card-h{flex-wrap:wrap}
+  .card-h .sub{font-size:11px;color:var(--dim);margin-left:auto;text-align:right;min-width:0}
+
+  /* ---------- today hero ---------- */
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+  .date-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.16em;display:flex;align-items:center;gap:8px}
+  .date-label i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  #todayDate{font-size:26px;font-weight:700;margin:6px 0 0;letter-spacing:-.01em;line-height:1.15}
+  .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1.3fr)) repeat(2,minmax(0,.8fr));gap:10px}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}
+  .stat .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat .v{font-family:var(--mono);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat .sub{font-size:10.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat.balance{border-color:rgba(76,141,255,.35);background:linear-gradient(180deg,rgba(76,141,255,.06),rgba(76,141,255,.12))}
+  .stat.balance .k{color:var(--blue)}
+  .stat .sub{white-space:normal;line-height:1.3}
+  .bal{color:var(--text)}
+  .pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--text)}
+
+  /* ---------- entry form ---------- */
+  form .row{display:grid;grid-template-columns:1fr 1.25fr;gap:10px}
+  label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.1em}
+  input[type=text],input[type=number]{color-scheme:dark;width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);
+    border-radius:9px;padding:11px 12px;font-size:16px;font-family:var(--mono)}
+  input::placeholder{color:var(--dim)}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  input.invalid{border-color:var(--red)}
+  .toggle{display:grid;grid-template-columns:1.3fr 1.3fr 1fr 1fr;gap:10px;margin-top:10px}
+  .toggle button.cash{font-size:12.5px;letter-spacing:.08em}
+  .toggle button.cash:hover,.toggle button.cash[aria-pressed=true]{border-color:rgba(91,155,255,.5);color:var(--blue)}
+  .toggle button.cash[aria-pressed=true]{background:var(--blue-soft);box-shadow:0 0 0 1px var(--blue) inset}
+  .toggle button{padding:12px;font-size:15px;font-weight:700;border-radius:9px;cursor:pointer;background:var(--bg);
+    border:1px solid var(--border2);color:var(--muted);transition:background .12s,border-color .12s,color .12s;letter-spacing:.04em}
+  .toggle button.win:hover,.toggle button.win[aria-pressed=true]{border-color:var(--green-line);color:var(--green)}
+  .toggle button.loss:hover,.toggle button.loss[aria-pressed=true]{border-color:var(--red-line);color:var(--red)}
+  .toggle button.win[aria-pressed=true]{background:var(--green-soft);box-shadow:0 0 0 1px var(--green) inset}
+  .toggle button.loss[aria-pressed=true]{background:var(--red-soft);box-shadow:0 0 0 1px var(--red) inset}
+  .toggle.invalid button{border-color:var(--red)}
+  .confirm{margin-top:10px;width:100%;padding:13px;font-size:15px;font-weight:700;border:0;border-radius:9px;letter-spacing:.03em;
+    background:linear-gradient(180deg,#4a86ff,#2f6af0);color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(61,123,253,.25)}
+  .confirm:hover{filter:brightness(1.08)}
+  #formMsg{min-height:18px;margin-top:8px;font-size:12.5px;color:var(--red)}
+  #formMsg.ok{color:var(--green)}
+
+  /* ---------- calendar ---------- */
+  .cal-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .cal-head h2{margin:0;flex:1;font-size:18px;font-weight:700;min-width:150px;letter-spacing:-.01em}
+  .cal-nav{display:flex;gap:6px}
+  .icon-btn{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:8px;cursor:pointer;
+    min-width:34px;height:32px;font-size:15px;padding:0 10px}
+  .icon-btn:hover{border-color:var(--accent)}
+  .icon-btn[disabled]{opacity:.4;cursor:default}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .cal .dow{text-align:center;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;padding-bottom:2px;font-weight:600}
+  .cell{background:var(--panel2);border:1px solid var(--border);border-radius:9px;min-height:78px;padding:7px 8px;
+    display:flex;flex-direction:column;justify-content:space-between;min-width:0;transition:border-color .12s,transform .12s}
+  .cell.blank{background:transparent;border-color:transparent}
+  .cell.wkend{background:rgba(20,27,37,.55)}
+  .cell .dn{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
+  .cell .pl{font-family:var(--mono);font-weight:700;font-size:14px;text-align:right;white-space:nowrap;overflow:hidden;
+    font-variant-numeric:tabular-nums}
+  .cell .pl .s{display:none}
+  .cell.up{background:linear-gradient(180deg,rgba(22,199,132,.07),rgba(22,199,132,.16));border-color:rgba(22,199,132,.28)}
+  .cell.down{background:linear-gradient(180deg,rgba(240,70,79,.07),rgba(240,70,79,.16));border-color:rgba(240,70,79,.28)}
+  .cell.up .pl{color:var(--green)} .cell.down .pl{color:var(--red)}
+  .cell.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset,0 0 18px rgba(61,123,253,.18)}
+  .cell.today .dn{color:#fff}
+  .cell.future .dn{opacity:.4}
+  .cell[data-day]{cursor:pointer}
+  .cell[data-day]:hover{border-color:var(--border2);transform:translateY(-1px)}
+  .cell.today:hover{border-color:var(--accent)}
+  .cell[data-day]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .month-sum{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;padding-top:12px;
+    border-top:1px solid var(--border);font-size:12px;color:var(--muted);flex-wrap:wrap;text-transform:uppercase;letter-spacing:.08em}
+  .month-sum b{font-family:var(--mono);font-size:16px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:0;margin-left:6px}
+  .month-sum b.pos{color:var(--green)} .month-sum b.neg{color:var(--red)}
+  .month-sum span{white-space:nowrap}
+
+  /* ---------- day popup ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(2,4,8,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay[hidden]{display:none}
+  .popup{background:var(--panel);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:440px;
+    max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .popup-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .popup-head h3{margin:0;font-size:15px}
+  .popup-body{overflow-y:auto;padding:4px 16px}
+  .popup-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);
+    font-size:12px;color:var(--muted);background:var(--bg2);border-radius:0 0 14px 14px}
+  .popup-foot b{font-family:var(--mono);font-size:18px}
+  ul.trades{list-style:none;margin:0;padding:0}
+  ul.trades li{display:grid;grid-template-columns:46px minmax(0,1fr) auto auto 30px;gap:10px;align-items:center;
+    padding:10px 0;border-top:1px solid var(--border)}
+  ul.trades li:first-child{border-top:0}
+  .time{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+  .pair{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
+  .badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em}
+  .badge.win{background:var(--green-soft);color:var(--green)} .badge.loss{background:var(--red-soft);color:var(--red)}
+  .badge.cash{background:var(--blue-soft);color:var(--blue)}
+  .amt.cashamt{color:var(--blue)}
+  ul.trades li.is-cash .pair{color:var(--blue);font-weight:500}
+  ul.trades li.cash-note{display:block;font-size:11.5px;color:var(--muted);padding:9px 0 6px}
+  .cash-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--blue);margin-left:5px;vertical-align:middle;box-shadow:0 0 0 2px var(--blue-soft)}
+  .amt{font-family:var(--mono);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .del,.close{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;border-radius:6px;padding:2px 7px;line-height:1.2}
+  .del:hover{color:var(--red);background:var(--red-soft)} .close:hover{color:var(--text);background:var(--panel3)}
+  .empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:13px}
+
+  /* ---------- news ---------- */
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px}
+  .tabs button{flex:1 1 auto;background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;padding:6px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .tabs button:hover{color:var(--text)}
+  .tabs button[aria-selected=true]{background:var(--panel3);color:var(--text);box-shadow:0 0 0 1px var(--border2) inset}
+  .tabs button[data-feed=gold][aria-selected=true]{color:var(--gold)}
+  .tv-slot{position:relative;border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--border)}
+  .tv-slot.news{height:560px} .tv-slot.econ{height:440px}
+  .tape .tv-slot{border:0;border-radius:0;background:transparent;height:46px}
+  .tv-host{position:absolute;inset:0}
+  .tv-host .tradingview-widget-container,.tv-host iframe{width:100%!important;height:100%!important}
+  .tv-host iframe{color-scheme:normal;background:transparent}
+  .tv-host .tradingview-widget-copyright{display:none}
+  .tv-loading,.tv-fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+    gap:8px;text-align:center;padding:16px;color:var(--muted);font-size:13px;background:var(--bg)}
+  .tv-slot.loading .tv-loading{display:flex}
+  .tv-slot.failed .tv-fallback{display:flex}
+  .tv-slot.failed .tv-host{visibility:hidden}
+  .tv-fallback b{color:var(--text);font-size:14px}
+  .spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .feed-note{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-left:2px solid var(--gold);
+    border-radius:8px;padding:7px 10px;margin-bottom:10px}
+  .feed-note[hidden]{display:none}
+  .news-note{font-size:11px;color:var(--dim);margin-top:8px}
+  .news-note a{color:var(--muted)}
+
+  .foot{max-width:1480px;margin:0 auto;padding:0 20px 30px;color:var(--dim);font-size:12px}
+
+
+  /* ---------- splash ---------- */
+  html.splashing,html.splashing body{overflow:hidden}
+  #splash{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(900px 480px at 50% 38%,#131d30 0%,transparent 65%),var(--bg);
+    transition:opacity .5s ease,visibility .5s ease}
+  #splash.hide{opacity:0;visibility:hidden}
+  .splash-in{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px;transform:translateY(-4%)}
+  #splash .px-icon{width:76px;height:76px;filter:drop-shadow(0 0 22px rgba(245,158,11,.35));animation:pxRise .9s cubic-bezier(.2,.8,.2,1) both,pxGlow 2.4s ease-in-out .9s infinite}
+  .px-name{margin:20px 0 0;font:700 30px/1 var(--sans);letter-spacing:.46em;margin-right:-.46em;color:var(--text);animation:pxFade .8s ease .15s both}
+  .px-sub{margin-top:10px;font-size:12px;letter-spacing:.32em;margin-right:-.32em;text-transform:uppercase;color:var(--muted);animation:pxFade .8s ease .3s both}
+  .px-bar{margin-top:30px;width:180px;height:2px;border-radius:2px;background:var(--border2);overflow:hidden;animation:pxFade .6s ease .35s both}
+  .px-bar i{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(90deg,#f0464f,#f59e0b,#fde68a);
+    box-shadow:0 0 10px rgba(245,158,11,.6);animation:pxLoad 1.5s cubic-bezier(.3,.7,.3,1) .2s forwards;transition:width .18s ease}
+  #splash.done .px-bar i{width:100%!important;animation:none}
+  @keyframes pxLoad{to{width:88%}}
+  @keyframes pxRise{from{opacity:0;transform:translateY(10px) scale(.92)}to{opacity:1;transform:none}}
+  @keyframes pxFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes pxGlow{50%{filter:drop-shadow(0 0 32px rgba(245,158,11,.55))}}
+  @media (max-width:560px){ #splash .px-icon{width:62px;height:62px} .px-name{font-size:24px} .px-sub{font-size:11px} .px-bar{width:150px} }
+  @media (prefers-reduced-motion:reduce){
+    #splash,#splash *{animation:none!important;transition:none!important}
+    .px-bar i{width:100%}
+  }
+  .brand .mark.px{background:none;width:24px;height:24px}
+  .brand .mark.px svg{width:24px;height:24px}
+
+  /* ---------- account bar ---------- */
+  .acctbar{border-bottom:1px solid var(--border);background:var(--bg2)}
+  .acctbar-in{max-width:1480px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .acct-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+  select{background:var(--panel2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:6px 30px 6px 10px;font:600 13px var(--sans);
+    color-scheme:dark;appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+  select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  #accountSel{min-width:130px;border-color:rgba(231,181,60,.4)}
+  .acct-meta{font-size:12px;color:var(--dim);white-space:nowrap}
+  .btn.ghost{background:transparent}
+  .btn.danger:not([disabled]):hover{border-color:var(--red);color:var(--red)}
+  .btn.acct-new{border-color:rgba(231,181,60,.45);color:var(--gold)}
+  .btn.acct-new:hover{background:rgba(231,181,60,.1);border-color:var(--gold)}
+  .acct-pill{margin-left:4px;padding:1px 8px;border-radius:999px;background:rgba(231,181,60,.12);color:var(--gold);letter-spacing:.08em;font-size:10.5px;font-weight:700}
+
+  /* ---------- dialogs ---------- */
+  .dlg{max-width:470px}
+  .dlg-body{padding:14px 16px 4px;overflow-y:auto;font-size:13.5px;color:var(--text)}
+  .dlg-body p{margin:0 0 10px;line-height:1.5}
+  .dlg-body p.keep{background:var(--green-soft);border:1px solid rgba(22,199,132,.3);border-radius:8px;padding:9px 11px;color:#bfeedd}
+  .dlg-body .hint{font-size:12px;color:var(--muted);margin-top:10px}
+  .dlg-body input[type=text],.dlg-body input[type=number],.dlg-body input[type=date],.dlg-body input[type=time],.dlg-body select{width:100%;font-size:15px}
+  .dlg-body input[type=date],.dlg-body input[type=time]{background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:10px 12px;font-family:var(--mono);color-scheme:dark}
+  .dlg-body input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .dlg-body select{padding:10px 30px 10px 12px}
+  .dlg-body ul.imp{margin:0 0 8px;padding-left:18px} .dlg-body ul.imp li{margin:3px 0} .dlg-body .muted{color:var(--muted)}
+  .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dlg-err{min-height:0;padding:0 16px;color:var(--red);font-size:12.5px}
+  .dlg-err:not(:empty){padding:4px 16px 2px}
+  .dlg-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border);margin-top:10px;background:var(--bg2);border-radius:0 0 14px 14px}
+  .btn-primary{border:0;border-radius:8px;padding:8px 14px;font:700 13px var(--sans);color:#fff;cursor:pointer;background:linear-gradient(180deg,#4a86ff,#2f6af0)}
+  .btn-primary.danger{background:linear-gradient(180deg,#f45b63,#d9363f)}
+  .btn-primary[disabled]{opacity:.4;cursor:default}
+
+  /* ---------- all trades ---------- */
+  .all-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .seg{display:flex;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px}
+  .seg button{background:none;border:0;color:var(--muted);font:600 12px var(--sans);padding:6px 12px;border-radius:6px;cursor:pointer}
+  .seg button:hover{color:var(--text)}
+  .seg button[aria-selected=true]{background:var(--panel3);color:var(--text);box-shadow:0 0 0 1px var(--border2) inset}
+  #allSearch{flex:1;min-width:160px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:8px 12px;font:14px var(--mono);color-scheme:dark}
+  #allSearch:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .all-head,.arow{display:grid;grid-template-columns:128px 56px minmax(0,1fr) 96px 118px 84px;gap:10px;align-items:center}
+  .all-head{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;padding:0 10px 6px;border-bottom:1px solid var(--border)}
+  .all-head .r{text-align:right}
+  .all-list{list-style:none;margin:0;padding:0}
+  .arow{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
+  .arow:hover{background:rgba(255,255,255,.02)}
+  .a-date{color:var(--muted);white-space:nowrap} .a-time{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+  .a-pair{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
+  .arow.is-cash .a-pair{color:var(--blue);font-weight:500}
+  .a-amt{font-family:var(--mono);font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .a-amt.cashamt{color:var(--blue)}
+  .a-act{display:flex;justify-content:flex-end;gap:4px}
+  .mini{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 9px;font:600 11.5px var(--sans);cursor:pointer}
+  .mini:hover{border-color:var(--accent)}
+  .all-list .empty{padding:18px 8px}
+  .btn.more{display:block;margin:12px auto 0}
+  .btn.more[hidden]{display:none}
+  /* ---------- responsive ---------- */
+  @media (max-width:340px){ .hide-xs{display:none} }
+  @media (max-width:1100px){
+    .layout{grid-template-columns:minmax(0,1fr)}
+    .summary{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .summary .money{grid-column:span 2} .summary .count{grid-column:span 3}
+  }
+  @media (max-width:560px){
+    .topbar-in{padding:8px 10px;gap:8px}
+    .acctbar-in{padding:8px 10px;gap:6px}
+    .acctbar .spacer{display:none} .acct-meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .acctbar .btn{padding:6px 9px;font-size:12px}
+    .acctbar .acct-new{order:5;flex:1 1 100%}
+    .edit-grid{grid-template-columns:1fr}
+    .all-head{display:none}
+    .arow{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"date time amt" "pair type act";row-gap:5px;column-gap:8px;padding:10px 4px}
+    .a-date{grid-area:date;font-size:12px} .a-time{grid-area:time;font-size:12px} .a-amt{grid-area:amt;font-size:14px}
+    .a-pair{grid-area:pair;max-width:150px} .a-type{grid-area:type} .a-act{grid-area:act}
+    .brand small,.status span,.hide-sm{display:none}
+    .brand{font-size:12px;letter-spacing:.1em;gap:8px} .btn{padding:6px 10px}
+    #clock{font-size:13px;padding:4px 8px}
+    .layout{padding:12px 10px 30px;gap:12px}
+    .col{gap:12px}
+    .card{padding:13px}
+    #todayDate{font-size:22px}
+    form .row{grid-template-columns:1fr}
+    .summary .money,.summary .count{grid-column:span 3} .summary .money:first-child{grid-column:1/-1}
+    .hero-top{flex-wrap:wrap} .toggle{grid-template-columns:1fr 1fr;gap:8px}
+    .stat .v{font-size:21px}
+    .cal{gap:3px} .cell{min-height:50px;padding:4px 3px;border-radius:6px}
+    .cell .dn{font-size:11px} .cell .pl{font-size:11px;text-align:center}
+    .cell .pl .f{display:none} .cell .pl .s{display:inline}
+    .month-sum{font-size:10.5px;gap:6px} .month-sum b{font-size:14px;margin-left:4px}
+    .tabs button{font-size:11.5px;padding:6px 6px}
+    .tv-slot.news{height:480px} .tv-slot.econ{height:420px}
+  }
+
+  /* ---------- cloud sync (v4) ---------- */
+  .sync{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);white-space:nowrap;background:transparent;border:1px solid var(--border);
+    border-radius:8px;padding:5px 9px;cursor:pointer;font-family:inherit}
+  .sync:hover{border-color:var(--border2);color:var(--text)}
+  .sync i{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+  .sync[data-s=synced] i{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .sync[data-s=syncing] i{background:var(--gold);box-shadow:0 0 0 3px rgba(231,181,60,.16);animation:syncPulse 1s ease-in-out infinite}
+  .sync[data-s=error] i{background:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+  .sync[data-s=offline] i,.sync[data-s=local] i{background:var(--dim);box-shadow:none}
+  @keyframes syncPulse{50%{opacity:.35}}
+  .sync-pop{position:fixed;z-index:40;top:52px;right:16px;width:280px;max-width:calc(100vw - 20px);background:var(--panel);border:1px solid var(--border2);
+    border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:12px;font-size:12.5px}
+  .sync-pop[hidden]{display:none}
+  .sync-pop .sp-h{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:600;margin-bottom:6px}
+  .sync-pop .sp-email{font-weight:600;word-break:break-all;margin-bottom:8px}
+  .sync-pop .sp-row{display:flex;justify-content:space-between;gap:10px;color:var(--muted);margin:3px 0}
+  .sync-pop .sp-row b{color:var(--text);font-weight:500;text-align:right}
+  .sync-pop .sp-act{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+  .sync-pop .sp-act .btn{width:100%;text-align:center}
+  .sync-pop .sp-note{color:var(--dim);font-size:11.5px;margin-top:8px;line-height:1.45}
+
+  #authScreen{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:24px 14px;
+    background:radial-gradient(900px 480px at 50% 30%,#131d30 0%,transparent 65%),var(--bg)}
+  #authScreen[hidden]{display:none}
+  html.authing,html.authing body{overflow:hidden}
+  .auth-card{width:100%;max-width:380px;margin:auto}
+  .auth-brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px}
+  .auth-brand svg{width:54px;height:54px;filter:drop-shadow(0 0 18px rgba(245,158,11,.3))}
+  .auth-brand .px-name{margin-top:14px;font-size:24px;animation:none}
+  .auth-brand .px-sub{animation:none}
+  .auth-box{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:18px;
+    box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 18px 50px rgba(0,0,0,.4)}
+  .auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px;margin-bottom:14px}
+  .auth-tabs button{background:transparent;border:0;color:var(--muted);padding:8px;border-radius:7px;font-weight:600;font-size:12.5px;cursor:pointer;letter-spacing:.04em}
+  .auth-tabs button[aria-selected=true]{background:var(--panel3);color:var(--text);box-shadow:0 0 0 1px var(--border2) inset}
+  .auth-lead{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+  .auth-box label.f{margin-top:10px}
+  .auth-box input[type=email],.auth-box input[type=password],.auth-box input[type=text]{color-scheme:dark;width:100%;background:var(--bg);border:1px solid var(--border2);
+    color:var(--text);border-radius:9px;padding:11px 12px;font-size:16px;font-family:var(--mono)}
+  .auth-pw{position:relative}
+  .auth-pw input{padding-right:62px!important}
+  .auth-pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--muted);font-size:11.5px;cursor:pointer;padding:6px}
+  .auth-submit{width:100%;margin-top:16px;padding:12px;font-size:14px;letter-spacing:.06em;background:linear-gradient(180deg,#f59e0b,#d9771f);color:#1a1204}
+  .auth-submit[disabled]{opacity:.55}
+  .auth-msg{font-size:12.5px;margin-top:12px;line-height:1.45;color:var(--red)}
+  .auth-msg.ok{color:var(--green)}
+  .auth-msg:empty{display:none}
+  .auth-links{display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .auth-links button{background:none;border:0;padding:2px 0;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .auth-links button:hover{color:var(--text)}
+  .auth-foot{text-align:center;color:var(--dim);font-size:11.5px;margin-top:14px;line-height:1.5}
+  @media (max-width:560px){ .sync span{display:none} .sync{padding:6px 8px} .sync-pop{right:10px;top:48px} }
+
+  /* home-screen app: keep clear of the notch / status bar */
+  .topbar{padding-top:env(safe-area-inset-top,0px)}
+  .topbar-in{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+  body{padding-bottom:env(safe-area-inset-bottom,0px)}
+  #authScreen{padding-top:max(24px,env(safe-area-inset-top,0px))}
+  .sync-pop{top:calc(52px + env(safe-area-inset-top,0px))}
+  @media (max-width:560px){ .topbar-in{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+    .sync-pop{top:calc(48px + env(safe-area-inset-top,0px))} }
+</style>
+</head>
+<body>
+<div id="splash" role="status" aria-live="polite" aria-label="Loading Phoenix Trading Journal">
+  <div class="splash-in">
+    <svg class="px-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <defs><linearGradient id="pxFlame" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f0464f"/><stop offset=".5" stop-color="#f59e0b"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+      <path fill="url(#pxFlame)" d="M32 5c3 7 9 10 9 18 0 3-1 5.5-3 7.5 5.5-1 9.5-5 11.5-10.5 5.5 8.5 4.5 19.5-2.5 26.5-4 4-9 6.5-15 6.5s-11-2.5-15-6.5c-7-7-8-18-2.5-26.5 2 5.5 6 9.5 11.5 10.5-2-2-3-4.5-3-7.5 0-8 6-11 9-18z"/>
+      <path fill="#07090d" opacity=".5" d="M32 31c2.2 4 6.5 6.2 6.5 11.5a6.5 6.5 0 0 1-13 0C25.5 37.2 29.8 35 32 31z"/>
+    </svg>
+    <div class="px-name">PHOENIX</div>
+    <div class="px-sub">Trading Journal</div>
+    <div class="px-bar"><i></i></div>
+  </div>
+</div>
+<script>
+/* Splash: shown for at least ~1.4 s (0.6 s with reduced motion) or until the page has loaded,
+   whichever is later — but never longer than 3 s, so it can't hang offline. */
+(function () {
+  var el = document.getElementById('splash'), root = document.documentElement;
+  var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var MIN = reduce ? 600 : 1400, CAP = 3000, t0 = Date.now(), loaded = false, done = false;
+  function finish() {
+    if (done) return; done = true;
+    el.classList.add('done');
+    setTimeout(function () {
+      el.classList.add('hide');
+      setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        root.classList.remove('splashing');
+        window.__splashDone = true;
+      }, reduce ? 0 : 520);
+    }, reduce ? 0 : 200);
+  }
+  function check() { if (loaded && Date.now() - t0 >= MIN) finish(); }
+  window.addEventListener('load', function () { loaded = true; check(); });
+  setTimeout(function () { if (document.readyState === 'complete') loaded = true; check(); }, MIN);
+  setTimeout(finish, CAP);
+})();
+</script>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><span class="mark px"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="pxFlameBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f0464f"/><stop offset=".5" stop-color="#f59e0b"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs><path fill="url(#pxFlameBar)" d="M32 5c3 7 9 10 9 18 0 3-1 5.5-3 7.5 5.5-1 9.5-5 11.5-10.5 5.5 8.5 4.5 19.5-2.5 26.5-4 4-9 6.5-15 6.5s-11-2.5-15-6.5c-7-7-8-18-2.5-26.5 2 5.5 6 9.5 11.5 10.5-2-2-3-4.5-3-7.5 0-8 6-11 9-18z"/><path fill="#07090d" opacity=".5" d="M32 31c2.2 4 6.5 6.2 6.5 11.5a6.5 6.5 0 0 1-13 0C25.5 37.2 29.8 35 32 31z"/></svg></span><span>PHOENIX</span> <small class="hide-xs">TRADING JOURNAL</small></div>
+    <div class="spacer"></div>
+    <button class="sync" id="syncBtn" type="button" data-s="offline" aria-haspopup="dialog" aria-label="Sync status"><i></i><span>Offline</span></button>
+    <div class="status" id="netStatus" title="Internet connection for live news"><i></i><span>Live</span></div>
+    <div id="clock" aria-label="Current time">--:--:--</div>
+    <button class="btn" id="exportBtn" type="button" title="Download all trades as CSV"><span class="hide-sm">Export </span>CSV</button>
+  </div>
+</header>
+
+<div class="tape">
+  <div class="tv-slot" id="tapeSlot" data-widget="ticker-tape">
+    <div class="tv-host"></div>
+    <div class="tv-loading"><span>Loading live prices…</span></div>
+    <div class="tv-fallback"><b>Live prices need internet</b></div>
+  </div>
+</div>
+
+<div class="acctbar" id="acctBar">
+  <div class="acctbar-in">
+    <label class="acct-label" for="accountSel">Account</label>
+    <select id="accountSel" aria-label="Active account"></select>
+    <span class="acct-meta" id="accountMeta"></span>
+    <div class="spacer"></div>
+    <button class="btn acct-new" id="newAccountBtn" type="button">＋ New account / Reset</button>
+    <button class="btn ghost" id="importBtn" type="button" title="Restore accounts from a Phoenix JSON backup">Import backup</button>
+    <button class="btn ghost" id="backupBtn" type="button" title="Download a JSON backup of all accounts + CSV of this account">Download backup</button>
+    <button class="btn ghost danger" id="deleteAccountBtn" type="button">Delete account</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<main class="layout">
+  <div class="col" id="journalCol">
+    <section class="card hero" id="todayCard">
+      <div class="hero-top">
+        <div>
+          <div class="date-label"><i></i>Today <span class="acct-pill" id="acctPill" title="Active account">—</span></div>
+          <h1 id="todayDate">—</h1>
+        </div>
+        <button class="btn" id="undoBtn" type="button" disabled>↶ Undo last entry</button>
+      </div>
+      <div class="summary">
+        <div class="stat money"><div class="k">Today's net</div><div class="v" id="todayTotal">0.00</div><div class="sub" id="todaySub">0 trades today</div></div>
+        <div class="stat money"><div class="k">All-time net</div><div class="v" id="allTimeNet">0.00</div><div class="sub" id="allTimeSub">All win/loss trades · excl. deposits</div></div>
+        <div class="stat money balance"><div class="k">Balance</div><div class="v bal" id="balance">0.00</div><div class="sub" id="balanceSub">Deposits · Withdrawals</div></div>
+        <div class="stat count"><div class="k">Wins today</div><div class="v pos" id="todayWins">0</div></div>
+        <div class="stat count"><div class="k">Losses today</div><div class="v neg" id="todayLosses">0</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>New trade</h2><span class="sub">Stamped with the current date &amp; time · deposits don't count as P/L</span></div>
+      <form id="tradeForm" novalidate autocomplete="off">
+        <div class="row">
+          <div><label class="f" for="amount">Amount</label>
+            <input id="amount" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 250"></div>
+          <div><label class="f" for="pair" id="pairLabel">Pair / index</label>
+            <input id="pair" type="text" maxlength="30" placeholder="e.g. XAUUSD, NAS100"></div>
+        </div>
+        <div class="toggle" id="resultToggle" role="group" aria-label="Outcome: win, loss, deposit or withdrawal">
+          <button type="button" class="win" data-result="win" aria-pressed="false">WIN</button>
+          <button type="button" class="loss" data-result="loss" aria-pressed="false">LOSS</button>
+          <button type="button" class="cash" data-result="deposit" aria-pressed="false" title="Money added to the account — not counted as profit">DEPOSIT</button>
+          <button type="button" class="cash" data-result="withdrawal" aria-pressed="false" title="Money taken out of the account — not counted as a loss">WITHDRAWAL</button>
+        </div>
+        <button type="submit" class="confirm" id="confirmBtn">Confirm trade</button>
+        <div id="formMsg" role="status"></div>
+      </form>
+    </section>
+
+    <section class="card" id="calCard">
+      <div class="cal-head">
+        <h2 id="calTitle">—</h2>
+        <div class="cal-nav">
+          <button class="icon-btn" id="prevMonth" type="button" aria-label="Previous month">‹</button>
+          <button class="icon-btn" id="todayBtn" type="button">Today</button>
+          <button class="icon-btn" id="nextMonth" type="button" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="cal" id="calendar" aria-label="Monthly calendar"></div>
+      <div class="month-sum" id="monthSum">
+        <span>Month net<b id="monthTotal" class="zero">0.00</b></span>
+        <span>Trades<b id="monthTrades">0</b></span>
+        <span>Win rate<b id="monthWinRate">–</b></span>
+      </div>
+    </section>
+
+    <section class="card" id="allCard">
+      <div class="card-h"><h2>All trades</h2><span class="sub" id="allCount"></span></div>
+      <div class="all-tools">
+        <div class="seg" id="allFilter" role="tablist" aria-label="Filter entries">
+          <button type="button" role="tab" data-f="all" aria-selected="true">All</button>
+          <button type="button" role="tab" data-f="trades" aria-selected="false">Trades</button>
+          <button type="button" role="tab" data-f="cash" aria-selected="false" title="Deposits and withdrawals">Deposits</button>
+        </div>
+        <input type="search" id="allSearch" placeholder="Search pair / index" aria-label="Search by pair or index" autocomplete="off">
+      </div>
+      <div class="all-head" aria-hidden="true"><span>Date</span><span>Time</span><span>Pair / index</span><span>Type</span><span class="r">Amount</span><span></span></div>
+      <ul class="all-list" id="allList"></ul>
+      <button class="btn more" id="allMore" type="button" hidden>Show more</button>
+    </section>
+  </div>
+
+  <aside class="col news-col" id="newsCol" aria-label="Live market news">
+    <section class="card" id="newsCard">
+      <div class="card-h"><h2>Live news</h2><span class="sub">via TradingView</span></div>
+      <div class="tabs" role="tablist" id="newsTabs">
+        <button type="button" role="tab" data-feed="gold" aria-selected="true">Gold</button>
+        <button type="button" role="tab" data-feed="us500" aria-selected="false">US500</button>
+        <button type="button" role="tab" data-feed="nas100" aria-selected="false" title="Nasdaq news (Nasdaq Composite feed)">NAS100</button>
+        <button type="button" role="tab" data-feed="ger40" aria-selected="false">GER40</button>
+        <button type="button" role="tab" data-feed="us30" aria-selected="false">US30</button>
+        <button type="button" role="tab" data-feed="indices" aria-selected="false">All indices</button>
+      </div>
+      <div class="feed-note" id="newsFeedNote" hidden></div>
+      <div class="tv-slot news" id="newsSlot" data-widget="timeline">
+        <div class="tv-host"></div>
+        <div class="tv-loading"><div class="spin"></div><span>Loading live news…</span></div>
+        <div class="tv-fallback"><b>Live news needs internet</b><span>Your journal and calendar keep working offline.</span>
+          <button class="btn" type="button" data-retry>Retry</button></div>
+      </div>
+    </section>
+    <section class="card" id="econCard">
+      <div class="card-h"><h2>Economic calendar</h2><span class="sub">High impact · US · EU · DE</span></div>
+      <div class="tv-slot econ" id="econSlot" data-widget="events">
+        <div class="tv-host"></div>
+        <div class="tv-loading"><div class="spin"></div><span>Loading economic calendar…</span></div>
+        <div class="tv-fallback"><b>Live news needs internet</b><span>The economic calendar loads when you're online.</span>
+          <button class="btn" type="button" data-retry>Retry</button></div>
+      </div>
+      <div class="news-note">News, prices and events are provided by TradingView widgets and need an internet connection. Trades are stored only in this browser, so export a CSV backup now and then.</div>
+    </section>
+  </aside>
+</main>
+
+<div class="overlay" id="dlgOverlay" hidden>
+  <form class="popup dlg" id="dlgForm" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" novalidate autocomplete="off">
+    <div class="popup-head"><h3 id="dlgTitle">—</h3><button class="close" id="dlgClose" type="button" aria-label="Close">×</button></div>
+    <div class="dlg-body" id="dlgBody"></div>
+    <div class="dlg-err" id="dlgErr" role="alert"></div>
+    <div class="dlg-foot"><button class="btn" id="dlgCancel" type="button">Cancel</button><button class="btn-primary" id="dlgOk" type="submit">OK</button></div>
+  </form>
+</div>
+
+<div class="overlay" id="dayOverlay" hidden>
+  <div class="popup" role="dialog" aria-modal="true" aria-labelledby="dayTitle">
+    <div class="popup-head"><h3 id="dayTitle">—</h3><button class="close" id="dayClose" type="button" aria-label="Close">×</button></div>
+    <div class="popup-body"><ul class="trades" id="dayList"></ul></div>
+    <div class="popup-foot"><span id="dayMeta">0W / 0L</span><span>Day net <b id="dayNet" class="zero">0.00</b></span></div>
+  </div>
+</div>
+
+<div id="authScreen" hidden>
+  <div class="auth-card">
+    <div class="auth-brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path fill="url(#pxFlameBar)" d="M32 5c3 7 9 10 9 18 0 3-1 5.5-3 7.5 5.5-1 9.5-5 11.5-10.5 5.5 8.5 4.5 19.5-2.5 26.5-4 4-9 6.5-15 6.5s-11-2.5-15-6.5c-7-7-8-18-2.5-26.5 2 5.5 6 9.5 11.5 10.5-2-2-3-4.5-3-7.5 0-8 6-11 9-18z"/><path fill="#07090d" opacity=".5" d="M32 31c2.2 4 6.5 6.2 6.5 11.5a6.5 6.5 0 0 1-13 0C25.5 37.2 29.8 35 32 31z"/></svg>
+      <div class="px-name">PHOENIX</div>
+      <div class="px-sub">Trading Journal</div>
+    </div>
+    <form class="auth-box" id="authForm" novalidate>
+      <div class="auth-tabs" role="tablist" aria-label="Sign in or create account">
+        <button type="button" role="tab" data-mode="in" aria-selected="true">Sign in</button>
+        <button type="button" role="tab" data-mode="up" aria-selected="false">Create account</button>
+      </div>
+      <p class="auth-lead" id="authLead">Sign in to sync your journal live between your phone and PC.</p>
+      <label class="f" for="authEmail">Email</label>
+      <input id="authEmail" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com">
+      <label class="f" for="authPw">Password</label>
+      <div class="auth-pw"><input id="authPw" type="password" autocomplete="current-password" placeholder="At least 8 characters"><button type="button" id="authShow" aria-label="Show password">Show</button></div>
+      <button type="submit" class="btn-primary auth-submit" id="authSubmit">SIGN IN</button>
+      <div class="auth-msg" id="authMsg" role="status"></div>
+      <div class="auth-links">
+        <button type="button" id="authForgot">Forgot password?</button>
+        <button type="button" id="authLocal">Use on this device only</button>
+      </div>
+    </form>
+    <div class="auth-foot">Your trades are private to your login and sync over an encrypted connection.</div>
+  </div>
+</div>
+<div class="sync-pop" id="syncPop" hidden role="dialog" aria-label="Sync"></div>
+
+<script>
+/* Phoenix cloud sync (v4): Supabase auth + per-user tables + Realtime, with a localStorage cache
+   and an offline queue. The journal below keeps working exactly as before; it just reads/writes a
+   per-user cache key and tells this layer after every save. Only the public (publishable) key is here. */
+(function () {
+  'use strict';
+  var SB_URL = 'https://rjkfchavallqfajmpbtb.supabase.co';
+  var SB_KEY = 'sb_publishable_lIdg5OB6wQHY-7AQ05h_Fg_Yvt2DfDZ';
+  var SB_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js';
+  var AUTH_KEY = 'sb-rjkfchavallqfajmpbtb-auth-token';
+  var MODE_KEY = 'phoenix.mode';                     // 'local' = this device only (no sync)
+  var LOCAL_AKEY = 'tradingJournal.accounts.v1';     // the pre-cloud (device-only) journal
+  var LEGACY_KEY = 'tradingJournal.trades.v1';
+  var SIGNED_OUT_KEY = 'phoenix.cloud.signedout.store';
+
+  function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function jget(k, d) { try { var v = JSON.parse(ls(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
+  function ukey(uid, part) { return 'phoenix.cloud.' + uid + '.' + part; }
+  function cachedUser() {
+    var s = jget(AUTH_KEY, null), u = s && (s.user || (s.currentSession && s.currentSession.user));
+    return u && u.id ? { id: u.id, email: u.email || '' } : null;
+  }
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+
+  // ---- decide the mode synchronously, before the journal script loads its data ----
+  var mode = ls(MODE_KEY) === 'local' ? 'local' : 'cloud';
+  var user = mode === 'cloud' ? cachedUser() : null;
+  if (mode === 'cloud') {
+    window.__phoenixCloud = true;
+    window.__phoenixStoreKey = user ? ukey(user.id, 'store') : SIGNED_OUT_KEY;
+  }
+
+  var S = {
+    client: null, channel: null, rt: 'off',      // realtime: off | connecting | on
+    queue: [], snap: { a: {}, e: {} }, applying: false,
+    flushing: false, fetching: false, netErr: false, err: '', lastSync: 0, fetchedOnce: false,
+    flushTimer: 0, rtRetry: 0
+  };
+  if (user) {   // load the offline queue + last-synced snapshot before the journal's first save
+    S.queue = jget(ukey(user.id, 'queue'), []);
+    S.snap = jget(ukey(user.id, 'snap'), { a: {}, e: {} });
+  }
+
+  // ======================= row mapping =======================
+  var KNOWN = { id: 1, ts: 1, day: 1, type: 1, amount: 1, pair: 1, result: 1 };
+  function okNum(n) { return typeof n === 'number' && isFinite(n); }
+  function r2(n) { return Math.round(n * 100) / 100; }
+  function hms(ts) { var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+  function entRow(t, accId) {
+    if (!t || typeof t !== 'object' || !t.id || !okNum(t.amount) || !okNum(t.ts) || t.amount < 0) return null;
+    if (typeof t.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(t.day)) return null;
+    var type = t.type || 'trade', trade = type === 'trade';
+    if (trade ? (t.result !== 'win' && t.result !== 'loss') : (type !== 'deposit' && type !== 'withdrawal')) return null;
+    var meta = {};
+    Object.keys(t).sort().forEach(function (k) { if (!KNOWN[k] && t[k] !== undefined) meta[k] = t[k]; });
+    return { id: String(t.id).slice(0, 80), account_id: accId, type: type, pair: String(t.pair || '').slice(0, 60),
+      result: trade ? t.result : null, amount: r2(t.amount), date: t.day, time: hms(t.ts), ts: Math.round(t.ts), meta: meta, deleted: false };
+  }
+  function accRow(a, i) {
+    var meta = {};
+    if (a.createdAt) meta.createdAt = a.createdAt;
+    if (a.migratedFrom) meta.migratedFrom = a.migratedFrom;
+    return { id: String(a.id), name: String(a.name || 'Account').slice(0, 60) || 'Account', sort: i, meta: meta, deleted: false };
+  }
+  function rowToEntry(r) {
+    var t = {};
+    var m = r.meta && typeof r.meta === 'object' ? r.meta : {};
+    Object.keys(m).forEach(function (k) { if (!KNOWN[k]) t[k] = m[k]; });
+    t.id = r.id; t.ts = Number(r.ts); t.day = String(r.date).slice(0, 10); t.type = r.type;
+    t.amount = r2(Number(r.amount)); t.pair = r.pair || '';
+    if (r.type === 'trade') t.result = r.result;
+    return t;
+  }
+  function rowsOf(store) {
+    var out = { a: {}, e: {} };
+    store.accounts.forEach(function (a, i) {
+      if (a.placeholder) { if (!a.entries.length) return; delete a.placeholder; }
+      out.a[a.id] = accRow(a, i);
+      a.entries.forEach(function (t) { var r = entRow(t, a.id); if (r) out.e[r.id] = r; });
+    });
+    return out;
+  }
+  var same = function (x, y) { return JSON.stringify(x) === JSON.stringify(y); };
+
+  // ======================= queue + snapshot =======================
+  function persist() {
+    if (!user) return;
+    lsSet(ukey(user.id, 'queue'), JSON.stringify(S.queue));
+    lsSet(ukey(user.id, 'snap'), JSON.stringify(S.snap));
+  }
+  function enqueue(table, row) {
+    var k = table + ':' + row.id;
+    S.queue = S.queue.filter(function (q) { return q.k !== k; });
+    S.queue.push({ k: k, t: table, row: row });
+  }
+  function pending(table, id) { var k = table + ':' + id; return S.queue.some(function (q) { return q.k === k; }); }
+
+  // Called by the journal after every successful save.
+  function changed(store) {
+    if (!user || mode !== 'cloud') return;
+    var cur = rowsOf(store);
+    if (!S.applying) {
+      [['a', 'accounts'], ['e', 'entries']].forEach(function (p) {
+        var was = S.snap[p[0]], now = cur[p[0]];
+        Object.keys(now).forEach(function (id) { if (!was[id] || !same(was[id], now[id])) enqueue(p[1], now[id]); });
+        Object.keys(was).forEach(function (id) { if (!now[id]) { var t = JSON.parse(JSON.stringify(was[id])); t.deleted = true; enqueue(p[1], t); } });
+      });
+    }
+    S.snap = cur;
+    persist();
+    status();
+    if (!S.applying && S.queue.length) scheduleFlush(250);
+  }
+
+  // ======================= apply server rows to the local store =======================
+  function applyRows(accRows, entRows, full) {
+    var J = window.__journal; if (!J) return false;
+    var touched = false;
+    S.applying = true;
+    try {
+      J.apply(function (store) {
+        var byId = {};
+        store.accounts.forEach(function (a) { byId[a.id] = a; });
+        (accRows || []).forEach(function (r) {
+          if (pending('accounts', r.id)) return;
+          var a = byId[r.id];
+          if (r.deleted) {
+            if (a) { store.accounts = store.accounts.filter(function (x) { return x !== a; }); delete byId[r.id]; touched = true; }
+            return;
+          }
+          var m = r.meta || {};
+          if (!a) {
+            a = { id: r.id, name: r.name, createdAt: m.createdAt || Date.parse(r.created_at) || Date.now(), entries: [] };
+            if (m.migratedFrom) a.migratedFrom = m.migratedFrom;
+            store.accounts.splice(Math.min(Math.max(0, r.sort | 0), store.accounts.length), 0, a);
+            byId[r.id] = a; touched = true;
+          } else if (a.name !== r.name || a.placeholder) {
+            a.name = r.name; delete a.placeholder; touched = true;
+          }
+        });
+        var where = {};
+        store.accounts.forEach(function (a) { a.entries.forEach(function (t, i) { if (t && t.id) where[t.id] = a; }); });
+        (entRows || []).forEach(function (r) {
+          if (pending('entries', r.id)) return;
+          var cur = where[r.id], obj = cur && cur.entries.find(function (t) { return t && t.id === r.id; });
+          if (r.deleted) {
+            if (cur) { cur.entries = cur.entries.filter(function (t) { return t !== obj; }); delete where[r.id]; touched = true; }
+            return;
+          }
+          var a = byId[r.account_id];
+          if (!a) {  // entry arrived before its account row
+            a = { id: r.account_id, name: 'Account', createdAt: Date.now(), entries: [] };
+            store.accounts.push(a); byId[a.id] = a;
+          }
+          var nt = rowToEntry(r);
+          if (obj && cur === a) {
+            if (!same(entRow(obj, a.id), entRow(nt, a.id))) {
+              Object.keys(obj).forEach(function (k) { if (!(k in nt)) delete obj[k]; });
+              Object.keys(nt).forEach(function (k) { obj[k] = nt[k]; });   // in place, so an open editor stays attached
+              touched = true;
+            }
+          } else {
+            if (cur) cur.entries = cur.entries.filter(function (t) { return t !== obj; });
+            a.entries.push(obj ? Object.assign(obj, nt) : nt); where[r.id] = a; touched = true;
+          }
+        });
+        if (full) {
+          // Server is the source of truth for everything that isn't waiting in the queue.
+          var sa = {}, se = {};
+          full.accounts.forEach(function (r) { sa[r.id] = 1; });
+          full.entries.forEach(function (r) { se[r.id] = 1; });
+          store.accounts.forEach(function (a) {
+            var before = a.entries.length;
+            a.entries = a.entries.filter(function (t) { return !t || !t.id || se[t.id] || pending('entries', t.id) || !entRow(t, a.id); });
+            if (a.entries.length !== before) touched = true;
+          });
+          var keep = store.accounts.filter(function (a) { return sa[a.id] || pending('accounts', a.id) || a.placeholder || a.entries.length; });
+          if (keep.length !== store.accounts.length) { store.accounts = keep; touched = true; }
+        }
+        // An empty "Main" placeholder isn't needed once real accounts exist.
+        if (store.accounts.length > 1) {
+          var k2 = store.accounts.filter(function (a) { return !(a.placeholder && !a.entries.length); });
+          if (k2.length && k2.length !== store.accounts.length) { store.accounts = k2; touched = true; }
+        }
+        return touched;
+      });
+    } finally { S.applying = false; }
+    return touched;
+  }
+
+  // ======================= network =======================
+  function isNetErr(e) {
+    var m = String((e && (e.message || e.details || e.hint)) || e || '');
+    return !navigator.onLine || /fetch|network|load failed|timeout|offline/i.test(m) || (e && e.status === 0);
+  }
+  function scheduleFlush(ms) { clearTimeout(S.flushTimer); S.flushTimer = setTimeout(flush, ms == null ? 250 : ms); }
+  function flush() {
+    if (!S.client || !user || S.flushing || !S.queue.length) { status(); return Promise.resolve(); }
+    S.flushing = true; status();
+    var items = S.queue.slice();
+    var groups = [
+      items.filter(function (q) { return q.t === 'accounts' && !q.row.deleted; }),
+      items.filter(function (q) { return q.t === 'entries'; }),
+      items.filter(function (q) { return q.t === 'accounts' && q.row.deleted; })
+    ];
+    var chain = Promise.resolve();
+    groups.forEach(function (g) {
+      for (var i = 0; i < g.length; i += 400) (function (batch) {
+        chain = chain.then(function () { return send(batch); });
+      })(g.slice(i, i + 400));
+    });
+    return chain.then(function () {
+      S.netErr = false; S.err = ''; S.lastSync = Date.now();
+    }, function (e) {
+      if (isNetErr(e)) S.netErr = true; else S.err = (e && e.message) || 'Sync failed';
+      console.warn('[phoenix sync] flush failed', e);
+    }).then(function () {
+      S.flushing = false; persist(); status();
+      if (S.queue.length && !S.netErr && !S.err) scheduleFlush(100);
+    });
+  }
+  function done(batch) {  // drop sent items unless they were replaced while in flight
+    S.queue = S.queue.filter(function (q) { return batch.indexOf(q) < 0; });
+    persist();
+  }
+  function send(batch) {
+    if (!batch.length) return Promise.resolve();
+    var table = batch[0].t;
+    var rows = batch.map(function (q) { var r = Object.assign({}, q.row); r.user_id = user.id; return r; });
+    return S.client.from(table).upsert(rows, { onConflict: 'user_id,id' }).then(function (res) {
+      if (!res.error) { done(batch); return; }
+      var e = res.error;
+      if (isNetErr(e)) throw e;
+      if (/JWT|token|401|403|42501/i.test(String(e.code) + ' ' + e.message)) {
+        return S.client.auth.refreshSession().then(function () { throw e; });
+      }
+      // A row the server rejects (e.g. a check constraint) must not block the rest: retry one by one, skip bad rows.
+      if (batch.length > 1) return batch.reduce(function (p, q) { return p.then(function () { return send([q]); }); }, Promise.resolve());
+      console.warn('[phoenix sync] skipped a row the server rejected', batch[0], e);
+      done(batch);
+    });
+  }
+  function fetchAll(table) {
+    var out = [], size = 1000;
+    function page(from) {
+      return S.client.from(table).select('*').order('id').range(from, from + size - 1).then(function (res) {
+        if (res.error) throw res.error;
+        out = out.concat(res.data || []);
+        return (res.data || []).length === size ? page(from + size) : out;
+      });
+    }
+    return page(0);
+  }
+  function fullSync() {
+    if (!S.client || !user || S.fetching) return Promise.resolve();
+    S.fetching = true; status();
+    var uid = user.id;
+    return flush().then(function () {
+      return Promise.all([fetchAll('accounts'), fetchAll('entries')]);
+    }).then(function (res) {
+      if (!user || user.id !== uid) return;
+      applyRows(res[0], res[1], { accounts: res[0], entries: res[1] });
+      S.fetchedOnce = true; S.netErr = false; S.err = ''; S.lastSync = Date.now();
+      lsSet(ukey(uid, 'fetched'), '1');
+      maybeOfferUpload();
+    }).catch(function (e) {
+      if (isNetErr(e)) S.netErr = true; else S.err = (e && e.message) || 'Sync failed';
+      console.warn('[phoenix sync] fetch failed', e);
+    }).then(function () { S.fetching = false; status(); if (S.queue.length) scheduleFlush(50); });
+  }
+
+  // ======================= realtime =======================
+  function subscribe() {
+    if (!S.client || !user) return;
+    unsubscribe();
+    var uid = user.id, filter = 'user_id=eq.' + uid;
+    S.rt = 'connecting'; status();
+    var ch = S.client.channel('phoenix-' + uid + '-' + Date.now().toString(36));
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'accounts', filter: filter }, function (p) { onChange('accounts', p); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: filter }, function (p) { onChange('entries', p); })
+      .subscribe(function (st) {
+        if (ch !== S.channel) return;
+        if (st === 'SUBSCRIBED') { S.rt = 'on'; S.rtRetry = 0; fullSync(); }
+        else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
+          S.rt = 'off';
+          clearTimeout(S.rtTimer);
+          S.rtTimer = setTimeout(function () { if (user && S.rt !== 'on') subscribe(); }, Math.min(30000, 2000 * Math.pow(2, S.rtRetry++)));
+        }
+        status();
+      });
+    S.channel = ch;
+  }
+  function unsubscribe() {
+    clearTimeout(S.rtTimer);
+    if (S.channel && S.client) { try { S.client.removeChannel(S.channel); } catch (e) {} }
+    S.channel = null; S.rt = 'off';
+  }
+  function onChange(table, p) {
+    var row = p.eventType === 'DELETE' ? Object.assign({}, p.old, { deleted: true }) : p.new;
+    if (!row || !row.id || (row.user_id && user && row.user_id !== user.id)) return;
+    if (table === 'accounts') applyRows([row], []);
+    else applyRows([], [row]);
+    S.lastSync = Date.now(); status();
+  }
+
+  // ======================= status dot + popover =======================
+  function state() {
+    if (mode === 'local') return 'local';
+    if (!user) return 'offline';
+    if (!navigator.onLine || S.netErr || !S.client) return 'offline';
+    if (S.err) return 'error';
+    if (S.flushing || S.fetching || S.queue.length || S.rt !== 'on') return 'syncing';
+    return 'synced';
+  }
+  var LABEL = { synced: 'Synced', syncing: 'Syncing…', offline: 'Offline', error: 'Sync error', local: 'This device' };
+  function status() {
+    var b = $('syncBtn'); if (!b) return;
+    var s = state();
+    b.dataset.s = s;
+    b.querySelector('span').textContent = LABEL[s];
+    b.title = s === 'local' ? 'Not syncing — stored on this device only' : s === 'offline' ? 'Offline — changes are saved here and sync when you\'re back online' +
+      (S.queue.length ? ' (' + S.queue.length + ' waiting)' : '') : s === 'error' ? 'Sync problem: ' + S.err : s === 'synced' ? 'Synced with your other devices' : 'Syncing…';
+    if (!$('syncPop').hidden) renderPop();
+  }
+  function ago(ms) {
+    if (!ms) return 'not yet';
+    var s = Math.round((Date.now() - ms) / 1000);
+    return s < 5 ? 'just now' : s < 60 ? s + ' s ago' : s < 3600 ? Math.round(s / 60) + ' min ago' : new Date(ms).toLocaleString('en-GB');
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function renderPop() {
+    var p = $('syncPop'), s = state();
+    if (mode === 'local') {
+      p.innerHTML = '<div class="sp-h">Storage</div><div class="sp-email">This device only</div>' +
+        '<div class="sp-note">Your journal is saved in this browser and isn\'t synced. Sign in to use it live on your phone and PC.</div>' +
+        '<div class="sp-act"><button class="btn-primary" type="button" data-sp="signin">Sign in to sync</button></div>';
+      return;
+    }
+    var up = user ? uploadable() : null;
+    p.innerHTML = '<div class="sp-h">Signed in as</div><div class="sp-email">' + esc(user ? user.email : '—') + '</div>' +
+      '<div class="sp-row">Status<b>' + LABEL[s] + '</b></div>' +
+      '<div class="sp-row">Live updates<b>' + (S.rt === 'on' ? 'On' : S.rt === 'connecting' ? 'Connecting…' : 'Off') + '</b></div>' +
+      '<div class="sp-row">Last sync<b>' + ago(S.lastSync) + '</b></div>' +
+      '<div class="sp-row">Waiting to upload<b>' + S.queue.length + '</b></div>' +
+      (S.err ? '<div class="sp-note" style="color:var(--red)">' + esc(S.err) + '</div>' : '') +
+      '<div class="sp-act"><button class="btn" type="button" data-sp="sync">Sync now</button>' +
+      (up && up.count ? '<button class="btn" type="button" data-sp="upload">Upload trades from this device (' + up.count + ')</button>' : '') +
+      '<button class="btn danger" type="button" data-sp="signout">Sign out</button></div>';
+  }
+  function togglePop(show) {
+    var p = $('syncPop');
+    if (show == null) show = p.hidden;
+    if (show) { renderPop(); p.hidden = false; } else p.hidden = true;
+  }
+
+  // ======================= "Upload my existing trades" =======================
+  function localSource() {
+    var st = jget(LOCAL_AKEY, null);
+    if (st && Array.isArray(st.accounts)) return st;
+    var arr = jget(LEGACY_KEY, null);
+    if (Array.isArray(arr) && arr.length) {
+      arr = JSON.parse(JSON.stringify(arr));
+      if (window.__journal) window.__journal.migrate(arr);
+      return { active: 'demo', accounts: [{ id: 'demo', name: 'Demo', createdAt: Date.now(), entries: arr }] };
+    }
+    return null;
+  }
+  function uploadable() {
+    var src = localSource(); if (!src || !window.__journal) return { count: 0 };
+    var have = {}, store = window.__journal.get();
+    store.accounts.forEach(function (a) { a.entries.forEach(function (t) { if (t && t.id) have[t.id] = 1; }); });
+    var plan = [], count = 0;
+    src.accounts.forEach(function (a) {
+      if (!a || !a.id || !Array.isArray(a.entries)) return;
+      var add = a.entries.filter(function (t) { return entRow(t, a.id) && !have[t.id]; });
+      if (add.length) { plan.push({ acc: a, add: add }); count += add.length; }
+    });
+    return { src: src, plan: plan, count: count };
+  }
+  function maybeOfferUpload() {
+    if (!user || ls(ukey(user.id, 'upload'))) return;
+    var up = uploadable();
+    if (!up.count) { lsSet(ukey(user.id, 'upload'), 'nothing'); return; }
+    var J = window.__journal;
+    if (!J || !$('dlgOverlay').hidden) { setTimeout(maybeOfferUpload, 1500); return; }
+    var uid = user.id;
+    J.openDialog({
+      title: 'Upload my existing trades',
+      okText: 'Upload my existing trades',
+      body: '<p>This device has a journal from before you signed in:</p><ul class="imp">' +
+        up.plan.map(function (p) { return '<li><b>' + esc(p.acc.name) + '</b> — ' + p.add.length + (p.add.length === 1 ? ' entry' : ' entries') + '</li>'; }).join('') +
+        '</ul><p class="keep">Upload them to your Phoenix login so they appear on all your devices. Entries that are already there are skipped, so nothing is duplicated.</p>' +
+        '<p class="hint">Choose Cancel to start with an empty cloud journal. You can still upload later from the sync menu (top right). Your device copy is never deleted.</p>',
+      onOk: function () { doUpload(uid); },
+      onCancel: function () { lsSet(ukey(uid, 'upload'), 'skipped'); }
+    });
+  }
+  function doUpload(uid) {
+    if (!user || user.id !== uid) return;
+    var up = uploadable(); if (!up.count) return;
+    var n = 0;
+    window.__journal.mutate(function (store) {
+      var byId = {}; store.accounts.forEach(function (a) { byId[a.id] = a; });
+      up.plan.forEach(function (p) {
+        var a = byId[p.acc.id];
+        if (!a) {
+          a = { id: p.acc.id, name: String(p.acc.name || 'Account'), createdAt: p.acc.createdAt || Date.now(), entries: [] };
+          if (p.acc.migratedFrom) a.migratedFrom = p.acc.migratedFrom;
+          var taken = store.accounts.some(function (x) { return !x.placeholder && x.name.trim().toLowerCase() === a.name.trim().toLowerCase(); });
+          if (taken) a.name = a.name + ' (this device)';
+          store.accounts.push(a); byId[a.id] = a;
+        }
+        p.add.forEach(function (t) { a.entries.push(JSON.parse(JSON.stringify(t))); n++; });
+      });
+      store.accounts = store.accounts.filter(function (a) { return !(a.placeholder && !a.entries.length); });
+      if (up.src.active && byId[up.src.active]) store.active = up.src.active;
+    });
+    lsSet(ukey(uid, 'upload'), 'done');
+    window.__journal.msg('Uploading ' + n + (n === 1 ? ' entry' : ' entries') + ' from this device to your Phoenix login…', true);
+    flush().then(function () {
+      if (!S.queue.length) window.__journal.msg('Uploaded ' + n + (n === 1 ? ' entry' : ' entries') + ' — they now sync to all your devices.', true);
+    });
+  }
+
+  // ======================= auth screen =======================
+  var authMode = 'in';
+  function showAuth(on) {
+    $('authScreen').hidden = !on;
+    document.documentElement.classList.toggle('authing', !!on);
+    if (on) { togglePop(false); setAuthMode(authMode); }
+  }
+  function setAuthMode(m) {
+    authMode = m;
+    $('authForm').querySelectorAll('[data-mode]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.mode === m)); });
+    $('authSubmit').textContent = m === 'in' ? 'SIGN IN' : 'CREATE ACCOUNT';
+    $('authPw').setAttribute('autocomplete', m === 'in' ? 'current-password' : 'new-password');
+    $('authLead').textContent = m === 'in' ? 'Sign in to sync your journal live between your phone and PC.' :
+      'Create your Phoenix login — use the same email and password on every device.';
+    $('authForgot').hidden = m !== 'in';
+    authMsg('');
+  }
+  function authMsg(t, ok) { var m = $('authMsg'); m.textContent = t; m.className = 'auth-msg' + (ok ? ' ok' : ''); }
+  function friendly(e) {
+    var m = String((e && e.message) || e || '');
+    if (/invalid login credentials/i.test(m)) return 'Wrong email or password.';
+    if (/email not confirmed/i.test(m)) return 'Please confirm your email first — open the link we sent you, then sign in.';
+    if (/already registered|already exists/i.test(m)) return 'There is already a login with this email — use Sign in.';
+    if (/password/i.test(m) && /least|short|weak|characters/i.test(m)) return 'Please choose a longer password (at least 8 characters).';
+    if (/rate limit|too many/i.test(m)) return 'Too many attempts — please wait a minute and try again.';
+    if (isNetErr(e)) return 'No connection — check your internet and try again.';
+    return m || 'Something went wrong. Please try again.';
+  }
+  function bindAuth() {
+    $('authForm').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mode]'); if (b) setAuthMode(b.dataset.mode);
+    });
+    $('authShow').addEventListener('click', function () {
+      var i = $('authPw'), show = i.type === 'password';
+      i.type = show ? 'text' : 'password'; this.textContent = show ? 'Hide' : 'Show';
+    });
+    $('authForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = $('authEmail').value.trim(), pw = $('authPw').value;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { authMsg('Please enter a valid email address.'); return; }
+      if (pw.length < (authMode === 'up' ? 8 : 1)) { authMsg(authMode === 'up' ? 'Please choose a password with at least 8 characters.' : 'Please enter your password.'); return; }
+      if (!S.client) { authMsg('Can\'t reach Phoenix sync — check your internet connection.'); loadLib(); return; }
+      var btn = $('authSubmit'); btn.disabled = true; authMsg(authMode === 'in' ? 'Signing in…' : 'Creating your login…', true);
+      var p = authMode === 'in' ? S.client.auth.signInWithPassword({ email: email, password: pw }) :
+        S.client.auth.signUp({ email: email, password: pw, options: { emailRedirectTo: location.href.split('#')[0].split('?')[0] } });
+      p.then(function (res) {
+        btn.disabled = false;
+        if (res.error) { authMsg(friendly(res.error)); return; }
+        if (res.data && res.data.session) { $('authPw').value = ''; startSession(res.data.session.user); return; }
+        if (authMode === 'up') {
+          var ids = res.data && res.data.user && res.data.user.identities;
+          if (ids && !ids.length) { authMsg('There is already a login with this email — use Sign in.'); return; }
+          setAuthMode('in');
+          authMsg('Almost done: we sent a confirmation link to ' + email + '. Open it, then sign in here.', true);
+        }
+      }, function (err) { btn.disabled = false; authMsg(friendly(err)); });
+    });
+    $('authForgot').addEventListener('click', function () {
+      var email = $('authEmail').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { authMsg('Type your email above first, then tap “Forgot password?”.'); return; }
+      if (!S.client) { authMsg('No connection — check your internet and try again.'); return; }
+      S.client.auth.resetPasswordForEmail(email, { redirectTo: location.href.split('#')[0].split('?')[0] }).then(function (res) {
+        authMsg(res.error ? friendly(res.error) : 'If that email has a login, a reset link is on its way.', !res.error);
+      });
+    });
+    $('authLocal').addEventListener('click', function () { goLocal(); });
+    $('syncBtn').addEventListener('click', function (e) { e.stopPropagation(); togglePop(); });
+    document.addEventListener('click', function (e) {
+      var p = $('syncPop');
+      if (!p.hidden && !p.contains(e.target) && e.target !== $('syncBtn')) togglePop(false);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') togglePop(false); });
+    $('syncPop').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-sp]'); if (!b) return;
+      var a = b.dataset.sp;
+      if (a === 'sync') { S.err = ''; S.netErr = false; if (S.rt !== 'on') subscribe(); else fullSync(); renderPop(); }
+      else if (a === 'upload') { togglePop(false); if (user) { lsDel(ukey(user.id, 'upload')); maybeOfferUpload(); } }
+      else if (a === 'signout') signOut();
+      else if (a === 'signin') { lsDel(MODE_KEY); mode = 'cloud'; window.__journal.setKey(SIGNED_OUT_KEY, true); showAuth(true); loadLib(); status(); }
+    });
+  }
+  function goLocal() {
+    lsSet(MODE_KEY, 'local'); mode = 'local';
+    stopSession();
+    window.__journal.setKey(LOCAL_AKEY, false);
+    showAuth(false); notes(); status();
+  }
+
+  // ======================= session lifecycle =======================
+  function startSession(u) {
+    if (!u || !u.id) return;
+    var switching = !user || user.id !== u.id;
+    user = { id: u.id, email: u.email || '' };
+    mode = 'cloud';
+    if (switching || window.__phoenixStoreKey !== ukey(user.id, 'store')) {
+      S.queue = jget(ukey(user.id, 'queue'), []);
+      S.snap = jget(ukey(user.id, 'snap'), { a: {}, e: {} });
+      window.__phoenixStoreKey = ukey(user.id, 'store');
+      window.__journal.setKey(window.__phoenixStoreKey, true);
+    }
+    showAuth(false); notes();
+    subscribe();
+    status();
+  }
+  function stopSession() { unsubscribe(); clearTimeout(S.flushTimer); user = null; S.queue = []; S.snap = { a: {}, e: {} }; S.fetchedOnce = false; }
+  function clearUserCache(uid) { ['store', 'queue', 'snap', 'fetched'].forEach(function (p) { lsDel(ukey(uid, p)); }); }
+  function signOut() {
+    if (!user) return;
+    var n = S.queue.length;
+    if (n && !confirm(n + (n === 1 ? ' change hasn\'t' : ' changes haven\'t') + ' synced yet (you\'re offline). If you sign out now ' +
+      (n === 1 ? 'it' : 'they') + ' will be lost from this device.\n\nSign out anyway?')) return;
+    var uid = user.id;
+    togglePop(false);
+    stopSession();
+    clearUserCache(uid);
+    window.__phoenixStoreKey = SIGNED_OUT_KEY;
+    window.__journal.setKey(SIGNED_OUT_KEY, true);
+    showAuth(true); setAuthMode('in'); status();
+    if (S.client) S.client.auth.signOut({ scope: 'local' }).catch(function () {});
+    lsDel(AUTH_KEY);
+  }
+
+  function notes() {
+    var n = document.querySelector('.news-note');
+    if (!n) return;
+    if (!n.dataset.orig) n.dataset.orig = n.textContent;
+    n.textContent = mode === 'cloud' && user ? 'News, prices and events are provided by TradingView widgets and need an internet connection. ' +
+      'Your trades sync to your Phoenix login and are cached on this device for offline use.' : n.dataset.orig;
+  }
+
+  // ======================= boot =======================
+  var libLoading = false;
+  function loadLib() {
+    if (S.client || libLoading || mode === 'local') return;
+    if (window.supabase && window.supabase.createClient) { initClient(); return; }
+    libLoading = true;
+    var s = document.createElement('script');
+    s.src = SB_JS; s.async = true; s.crossOrigin = 'anonymous';
+    s.onload = function () { libLoading = false; initClient(); };
+    s.onerror = function () { libLoading = false; s.remove(); S.netErr = true; status(); };
+    document.head.appendChild(s);
+  }
+  function initClient() {
+    if (S.client || !window.supabase) return;
+    S.client = window.supabase.createClient(SB_URL, SB_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: AUTH_KEY },
+      realtime: { params: { eventsPerSecond: 20 } }
+    });
+    S.client.auth.onAuthStateChange(function (ev, session) {
+      setTimeout(function () {   // never call supabase from inside the callback itself
+        if (mode === 'local') return;
+        if (session && session.user) {
+          if (!user || user.id !== session.user.id || !S.channel) startSession(session.user);
+          else if (ev === 'TOKEN_REFRESHED' && S.rt !== 'on') subscribe();
+        } else if (ev === 'SIGNED_OUT' && user) {
+          stopSession(); window.__phoenixStoreKey = SIGNED_OUT_KEY; window.__journal.setKey(SIGNED_OUT_KEY, true); showAuth(true); status();
+        } else if (ev === 'INITIAL_SESSION' && !session && !user) { showAuth(true); }
+      }, 0);
+    });
+    status();
+  }
+
+  window.__phoenixSync = {
+    changed: changed, flush: flush, fullSync: fullSync, state: state,
+    get queue() { return S.queue.slice(); }, get rt() { return S.rt; }, get user() { return user; },
+    get client() { return S.client; }
+  };
+
+  // The journal script (next) runs synchronously; finish wiring once the DOM is ready.
+  document.addEventListener('DOMContentLoaded', function () {
+    bindAuth();
+    if (mode === 'cloud') {
+      if (user) notes(); else showAuth(true);
+      loadLib();
+    }
+    status();
+    window.addEventListener('online', function () { S.netErr = false; status(); if (!S.client) loadLib(); else if (user) { if (S.rt !== 'on') subscribe(); else fullSync(); } });
+    window.addEventListener('offline', status);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden || !user || !S.client) return;
+      if (S.rt !== 'on') subscribe(); else if (Date.now() - S.lastSync > 20000) fullSync(); else flush();
+    });
+    setInterval(function () {
+      if (!user || mode !== 'cloud') return;
+      if (!S.client) { loadLib(); return; }
+      if (S.queue.length && !S.flushing) { S.err = ''; flush(); }
+      if (S.rt === 'off' && navigator.onLine) subscribe();
+      status();
+    }, 15000);
+    setInterval(status, 10000);
+  });
+
+  // Service worker: offline app shell (only over http/https).
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('[phoenix] service worker', e); }); });
+  }
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'tradingJournal.trades.v1';            // unchanged, so existing data carries over
+  var BACKUP_KEY = KEY + '.pre-migration-backup';  // untouched copy of the data before the first migration
+  var AKEY = window.__phoenixStoreKey || 'tradingJournal.accounts.v1';  // accounts (each with its own entries); per-login cache when synced
+  var CLOUD = !!window.__phoenixCloud;              // signed-in mode: data comes from the cloud, not from the old device journal
+  var PRE_ACCOUNTS_KEY = KEY + '.pre-accounts-backup'; // raw copy of the single-journal data before accounts were added
+  var store = { version: 1, active: null, accounts: [] };
+  var trades = [];            // entries of the ACTIVE account: every stored record (trades, deposits, withdrawals, and anything unrecognised)
+  var selected = null;        // 'win' | 'loss' | 'deposit' | 'withdrawal'
+  var renderedDay = null;     // date key currently shown as "today"
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function timeStr(d, secs) { return pad(d.getHours()) + ':' + pad(d.getMinutes()) + (secs ? ':' + pad(d.getSeconds()) : ''); }
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var dateFmt = { format: function (d) { return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); } };
+  var numFmt = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function fromKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function r2(n) { return Math.round(n * 100) / 100; }
+  function signed(n) { n = r2(n); return (n > 0 ? '+' : n < 0 ? '−' : '') + numFmt.format(Math.abs(n)); }
+  function plain(n) { n = r2(n); return (n < 0 ? '−' : '') + numFmt.format(Math.abs(n)); }
+  function cls(n) { n = r2(n); return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  // ---- record kinds ----
+  function okNum(n) { return typeof n === 'number' && isFinite(n); }
+  function usable(t) { return t && typeof t === 'object' && okNum(t.amount) && okNum(t.ts) && typeof t.day === 'string'; }
+  function isTrade(t) { return usable(t) && (t.type === 'trade' || !t.type) && (t.result === 'win' || t.result === 'loss'); }
+  function isCash(t) { return usable(t) && (t.type === 'deposit' || t.type === 'withdrawal'); }
+  function value(t) { return isTrade(t) ? (t.result === 'win' ? t.amount : -t.amount) : 0; }        // P/L effect
+  function cashValue(t) { return isCash(t) ? (t.type === 'deposit' ? t.amount : -t.amount) : 0; }  // balance effect
+  function labelOf(t) { return isTrade(t) ? (t.result === 'win' ? 'Win' : 'Loss') : t.type === 'deposit' ? 'Deposit' : t.type === 'withdrawal' ? 'Withdrawal' : 'Entry'; }
+  function nameOf(t) {
+    var p = String(t.pair || '').trim();
+    if (isCash(t) && (!p || p.toLowerCase().replace(/s$/, '') === t.type)) return t.type === 'deposit' ? 'Account deposit' : 'Account withdrawal';
+    return p || '—';
+  }
+
+  // ---- storage + migration ----
+  function migrate(arr) {
+    var changed = false;
+    arr.forEach(function (t) {
+      if (!t || typeof t !== 'object' || t.type) return;
+      var p = String(t.pair || '').trim().toLowerCase();
+      if (p === 'deposit' || p === 'deposits') {
+        t.type = 'deposit'; if (t.result) { t.migratedFromResult = t.result; delete t.result; } changed = true;
+      } else if (p === 'withdrawal' || p === 'withdrawals' || p === 'withdraw') {
+        t.type = 'withdrawal'; if (t.result) { t.migratedFromResult = t.result; delete t.result; } changed = true;
+      } else if (t.result === 'win' || t.result === 'loss') {
+        t.type = 'trade'; changed = true;
+      }
+    });
+    return changed;
+  }
+  function load() {
+    var raw = null, araw = null;
+    try { araw = localStorage.getItem(AKEY); } catch (e) {}
+    var st = null;
+    if (araw) { try { st = JSON.parse(araw); } catch (e) { st = null; } }
+    if (araw && (!st || !Array.isArray(st.accounts))) {   // unreadable: keep a copy, never silently overwrite it
+      try { if (!localStorage.getItem(AKEY + '.unreadable-backup')) localStorage.setItem(AKEY + '.unreadable-backup', araw); } catch (e) {}
+      st = null;
+    }
+    var changed = false;
+    if (!st && CLOUD) { st = { version: 1, active: 'main', accounts: [] }; changed = true; }
+    if (!st) {
+      // First run with accounts: move the old single journal into an account called "Demo".
+      try { raw = localStorage.getItem(KEY); } catch (e) {}
+      var arr = [];
+      try { arr = JSON.parse(raw || '[]'); } catch (e) { arr = null; }
+      if (!Array.isArray(arr)) {
+        try { if (raw && !localStorage.getItem(KEY + '.unreadable-backup')) localStorage.setItem(KEY + '.unreadable-backup', raw); } catch (e) {}
+        arr = [];
+      }
+      if (raw) {
+        try { if (!localStorage.getItem(PRE_ACCOUNTS_KEY)) localStorage.setItem(PRE_ACCOUNTS_KEY, raw); } catch (e) {}
+      }
+      if (migrate(arr)) { try { if (raw && !localStorage.getItem(BACKUP_KEY)) localStorage.setItem(BACKUP_KEY, raw); } catch (e) {} }
+      var first = { id: 'demo', name: arr.length ? 'Demo' : 'Main', createdAt: Date.now(), entries: arr };
+      if (arr.length) first.migratedFrom = KEY;
+      st = { version: 1, active: first.id, accounts: [first] };
+      changed = true;
+    }
+    st.accounts = st.accounts.filter(function (a) { return a && typeof a === 'object'; });
+    st.accounts.forEach(function (a) {
+      if (!a.id) { a.id = newId('acc'); changed = true; }
+      if (!a.name) { a.name = 'Account'; changed = true; }
+      if (!Array.isArray(a.entries)) { a.entries = []; changed = true; }
+      if (migrate(a.entries)) changed = true;
+    });
+    if (!st.accounts.length) { st.accounts.push(CLOUD ? { id: 'main', name: 'Main', createdAt: Date.now(), entries: [], placeholder: true } :
+      { id: newId('acc'), name: 'Main', createdAt: Date.now(), entries: [] }); changed = true; }
+    if (!st.accounts.some(function (a) { return a.id === st.active; })) { st.active = st.accounts[0].id; changed = true; }
+    store = st;
+    trades = acc().entries;
+    if (changed) save();
+  }
+  function acc() { return store.accounts.find(function (a) { return a.id === store.active; }) || store.accounts[0]; }
+  function newId(p) { return p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function save() {
+    acc().entries = trades;
+    try {
+      localStorage.setItem(AKEY, JSON.stringify(store));
+      if (CLOUD && window.__phoenixSync) window.__phoenixSync.changed(store);
+      return true;
+    } catch (e) { msg('Could not save — browser storage unavailable. Download a backup.', false); return false; }
+  }
+
+  function msg(text, ok) { var m = $('formMsg'); m.textContent = text; m.className = ok ? 'ok' : ''; }
+
+  function summarise(list) {
+    var s = { total: 0, wins: 0, losses: 0, trades: 0, deposits: 0, withdrawals: 0, dIn: 0, wOut: 0 };
+    list.forEach(function (t) {
+      if (isTrade(t)) { s.total += value(t); s.trades++; if (t.result === 'win') s.wins++; else s.losses++; }
+      else if (isCash(t)) { if (t.type === 'deposit') { s.deposits++; s.dIn += t.amount; } else { s.withdrawals++; s.wOut += t.amount; } }
+    });
+    s.total = r2(s.total); s.dIn = r2(s.dIn); s.wOut = r2(s.wOut);
+    return s;
+  }
+  // Compact amount for small calendar cells: +306, −75, +1.2k, +12k, +1.3M
+  function short(n) {
+    var a = Math.abs(n), sign = n > 0 ? '+' : n < 0 ? '−' : '', v;
+    if (a < 999.5) v = String(Math.round(a));
+    else if (a < 9950) v = (a / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    else if (a < 999500) v = Math.round(a / 1000) + 'k';
+    else v = (a / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    return sign + v;
+  }
+  function full(n) { return Math.abs(n) >= 100000 ? short(n) : signed(n); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  var view = null; // { y, m } month shown in the calendar
+
+  function render() {
+    var now = new Date(), today = dayKey(now);
+    var prevDay = renderedDay;
+    renderedDay = today;
+    // Follow the real date: on first load, or when the day rolls over while viewing the old current month.
+    if (!view || (prevDay && prevDay.slice(0, 7) !== today.slice(0, 7) &&
+        view.y + '-' + pad(view.m + 1) === prevDay.slice(0, 7))) {
+      view = { y: now.getFullYear(), m: now.getMonth() };
+    }
+    $('todayDate').textContent = dateFmt.format(now);
+
+    var groups = {};
+    trades.forEach(function (t) { if (usable(t)) (groups[t.day] = groups[t.day] || []).push(t); });
+
+    // Today
+    var s = summarise(groups[today] || []);
+    var tot = $('todayTotal');
+    tot.textContent = signed(s.total); tot.className = 'v ' + cls(s.total);
+    $('todayWins').textContent = s.wins;
+    $('todayLosses').textContent = s.losses;
+    $('todaySub').textContent = plural(s.trades, 'trade', 'trades') + ' today';
+
+    // All-time + balance
+    var all = summarise(trades);
+    var at = $('allTimeNet');
+    at.textContent = signed(all.total); at.className = 'v ' + cls(all.total);
+    $('allTimeSub').textContent = plural(all.trades, 'trade', 'trades') + ' · ' + all.wins + 'W / ' + all.losses + 'L · excl. deposits';
+    var balance = r2(all.dIn - all.wOut + all.total);
+    var bEl = $('balance');
+    bEl.textContent = plain(balance); bEl.className = 'v ' + (balance < 0 ? 'neg' : 'bal');
+    $('balanceSub').textContent = 'Deposits ' + numFmt.format(all.dIn) + ' · Withdrawals ' + numFmt.format(all.wOut);
+    $('balanceSub').parentNode.title = 'Balance = deposits ' + numFmt.format(all.dIn) + ' − withdrawals ' + numFmt.format(all.wOut) + ' + all-time net ' + signed(all.total);
+
+    $('undoBtn').disabled = !trades.some(usable);
+
+    // Calendar (Monday-first) — cells show only the net of win/loss trades
+    var y = view.y, m = view.m;
+    $('calTitle').textContent = MONTHS[m] + ' ' + y;
+    var isCurrent = y === now.getFullYear() && m === now.getMonth();
+    $('todayBtn').disabled = isCurrent;
+    var first = new Date(y, m, 1), daysIn = new Date(y, m + 1, 0).getDate();
+    var lead = (first.getDay() + 6) % 7;
+    var html = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function (d) {
+      return '<div class="dow">' + d + '</div>'; }).join('');
+    for (var i = 0; i < lead; i++) html += '<div class="cell blank" aria-hidden="true"></div>';
+    var mt = { total: 0, wins: 0, losses: 0 };
+    for (var d = 1; d <= daysIn; d++) {
+      var k = y + '-' + pad(m + 1) + '-' + pad(d);
+      var dt = new Date(y, m, d), dow = dt.getDay();
+      var c = ['cell'];
+      if (dow === 0 || dow === 6) c.push('wkend');
+      if (k === today) c.push('today'); else if (k > today) c.push('future');
+      var pl = '', title = dateFmt.format(dt), dot = '';
+      if (groups[k]) {
+        var g = summarise(groups[k]);
+        if (g.trades) {
+          mt.total += g.total; mt.wins += g.wins; mt.losses += g.losses;
+          c.push(g.total > 0 ? 'up' : g.total < 0 ? 'down' : 'flat');
+          pl = '<span class="f">' + full(g.total) + '</span><span class="s">' + short(g.total) + '</span>';
+          title += ': ' + signed(g.total) + ' (' + g.wins + 'W / ' + g.losses + 'L)';
+        }
+        if (g.deposits || g.withdrawals) {
+          dot = '<i class="cash-dot" aria-hidden="true"></i>';
+          title += (g.deposits ? ' · ' + plural(g.deposits, 'deposit', 'deposits') : '') + (g.withdrawals ? ' · ' + plural(g.withdrawals, 'withdrawal', 'withdrawals') : '');
+        }
+      }
+      html += '<div class="' + c.join(' ') + '" data-day="' + k + '" title="' + esc(title) + '"' +
+        (k === today ? ' aria-current="date"' : '') + ' role="button" tabindex="0"><span class="dn">' + d + dot + '</span><span class="pl">' + pl + '</span></div>';
+    }
+    var trail = (7 - (lead + daysIn) % 7) % 7;
+    for (i = 0; i < trail; i++) html += '<div class="cell blank" aria-hidden="true"></div>';
+    $('calendar').innerHTML = html;
+    mt.total = r2(mt.total);
+    var mEl = $('monthTotal'), n = mt.wins + mt.losses;
+    mEl.textContent = signed(mt.total); mEl.className = cls(mt.total);
+    $('monthTrades').textContent = n;
+    $('monthWinRate').textContent = n ? Math.round(mt.wins / n * 100) + '%' : '–';
+    renderAccounts();
+    renderAll();
+    if (openDay) renderDay();
+  }
+
+  // Day popup
+  var openDay = null;
+  function renderDay() {
+    var list = trades.filter(function (t) { return usable(t) && t.day === openDay; }).sort(function (a, b) { return a.ts - b.ts; });
+    $('dayTitle').textContent = dateFmt.format(fromKey(openDay));
+    var hasCash = false;
+    var rows = list.map(function (t) {
+      var cash = isCash(t), v = cash ? cashValue(t) : value(t);
+      if (cash) hasCash = true;
+      var badge = cash ? 'cash' : isTrade(t) ? t.result : 'cash';
+      return '<li data-id="' + esc(t.id) + '"' + (cash ? ' class="is-cash"' : '') + '><span class="time">' + timeStr(new Date(t.ts)) + '</span>' +
+        '<span class="pair">' + esc(nameOf(t)) + '</span>' +
+        '<span class="badge ' + badge + '">' + labelOf(t) + '</span>' +
+        '<span class="amt ' + (cash ? 'cashamt' : cls(v)) + '">' + signed(v) + '</span>' +
+        '<button class="del" type="button" data-del="' + esc(t.id) + '" title="Delete entry" aria-label="Delete entry">×</button></li>';
+    });
+    if (hasCash) rows.push('<li class="cash-note">Deposits and withdrawals change your balance only. They are not part of the day net, W/L or win rate.</li>');
+    $('dayList').innerHTML = list.length ? rows.join('') : '<li class="empty" style="display:block">No trades on this day.</li>';
+    var g = summarise(list), net = $('dayNet');
+    net.textContent = signed(g.total); net.className = cls(g.total);
+    $('dayMeta').textContent = g.wins + 'W / ' + g.losses + 'L · ' + plural(g.trades, 'trade', 'trades') +
+      (g.deposits ? ' · ' + plural(g.deposits, 'deposit', 'deposits') : '') + (g.withdrawals ? ' · ' + plural(g.withdrawals, 'withdrawal', 'withdrawals') : '');
+  }
+  function openDayPopup(k) { openDay = k; renderDay(); $('dayOverlay').hidden = false; $('dayClose').focus(); }
+  function closeDayPopup() {
+    var k = openDay; openDay = null; $('dayOverlay').hidden = true;
+    var c = document.querySelector('.cell[data-day="' + k + '"]'); if (c) c.focus();
+  }
+  $('calendar').addEventListener('click', function (e) {
+    var c = e.target.closest('.cell[data-day]'); if (c) openDayPopup(c.dataset.day);
+  });
+  $('calendar').addEventListener('keydown', function (e) {
+    var c = e.target.closest('.cell[data-day]');
+    if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDayPopup(c.dataset.day); }
+  });
+  $('dayClose').addEventListener('click', closeDayPopup);
+  $('dayOverlay').addEventListener('click', function (e) { if (e.target === this) closeDayPopup(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && openDay) closeDayPopup(); });
+  function describe(t) {
+    var d = new Date(t.ts);
+    return nameOf(t) + '  ' + labelOf(t) + '  ' + numFmt.format(t.amount) + '\n' + dateFmt.format(d) + ' ' + timeStr(d);
+  }
+  $('dayList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]'); if (!b) return;
+    var t = trades.find(function (x) { return x && x.id === b.dataset.del; }); if (!t) return;
+    if (!confirm('Delete this ' + (isCash(t) ? labelOf(t).toLowerCase() : 'trade') + '?\n\n' + describe(t))) return;
+    trades = trades.filter(function (x) { return x !== t; });
+    save(); render();
+  });
+
+  function shiftMonth(delta) {
+    var d = new Date(view.y, view.m + delta, 1);
+    view = { y: d.getFullYear(), m: d.getMonth() }; render();
+  }
+  $('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
+  $('nextMonth').addEventListener('click', function () { shiftMonth(1); });
+  $('todayBtn').addEventListener('click', function () { var n = new Date(); view = { y: n.getFullYear(), m: n.getMonth() }; render(); });
+
+  // Live clock + midnight rollover. The date is compared on every tick (and at least every 30 s
+  // even if timers are throttled), so "today" rolls over at midnight without a reload.
+  function tick() {
+    var now = new Date();
+    $('clock').textContent = timeStr(now, true);
+    if (dayKey(now) !== renderedDay) render();
+  }
+  setInterval(tick, 1000);
+  setInterval(function () { if (dayKey(new Date()) !== renderedDay) render(); }, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
+  window.addEventListener('storage', function (e) { if (e.key === AKEY) { load(); render(); } });
+
+  // Outcome toggle: Win / Loss / Deposit / Withdrawal
+  function setSelected(v) {
+    selected = v;
+    $('resultToggle').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.result === v)); });
+    var cash = v === 'deposit' || v === 'withdrawal';
+    $('pairLabel').textContent = cash ? 'Note (optional)' : 'Pair / index';
+    $('pair').placeholder = cash ? 'e.g. bank transfer' : 'e.g. XAUUSD, NAS100';
+    if (cash) $('pair').classList.remove('invalid');
+  }
+  $('resultToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-result]'); if (!b) return;
+    setSelected(b.dataset.result);
+    this.classList.remove('invalid');
+  });
+
+  $('tradeForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var amtEl = $('amount'), pairEl = $('pair');
+    var amount = parseFloat(String(amtEl.value).replace(',', '.'));
+    var cash = selected === 'deposit' || selected === 'withdrawal';
+    var pair = cash ? pairEl.value.trim() : pairEl.value.trim().toUpperCase();
+    var errs = [];
+    amtEl.classList.toggle('invalid', !(amount > 0));
+    pairEl.classList.toggle('invalid', !cash && !pair);
+    $('resultToggle').classList.toggle('invalid', !selected);
+    if (!(amount > 0)) errs.push('an amount above 0');
+    if (!cash && !pair) errs.push('a pair or index name');
+    if (!selected) errs.push('Win, Loss, Deposit or Withdrawal');
+    if (errs.length) { msg('Please enter ' + errs.join(', ') + '.', false); return; }
+
+    var now = new Date();
+    var t = { id: now.getTime().toString(36) + Math.random().toString(36).slice(2, 8),
+      ts: now.getTime(), day: dayKey(now), amount: r2(amount), pair: pair };
+    if (cash) t.type = selected; else { t.type = 'trade'; t.result = selected; }
+    trades.push(t);
+    if (!save()) { trades.pop(); return; }
+    render();
+    msg(labelOf(t) + ' of ' + numFmt.format(t.amount) + (pair ? (cash ? ' (' + pair + ')' : ' on ' + pair) : '') + ' saved at ' + timeStr(now) + '.' +
+      (cash ? ' Not counted in P/L.' : ''), true);
+    amtEl.value = ''; pairEl.value = ''; setSelected(null);
+    amtEl.focus();
+  });
+
+  $('undoBtn').addEventListener('click', function () {
+    var list = trades.filter(usable); if (!list.length) return;
+    var last = list.reduce(function (x, y) { return y.ts > x.ts ? y : x; });
+    if (!confirm('Undo the last entry?\n\n' + describe(last))) return;
+    trades = trades.filter(function (x) { return x !== last; });
+    save(); render();
+    msg('Removed ' + labelOf(last).toLowerCase() + ' of ' + numFmt.format(last.amount) + (isTrade(last) ? ' on ' + last.pair : '') + '.', true);
+  });
+
+  // ======================= Downloads (CSV + JSON backup) =======================
+  function stamp(d) { d = d || new Date(); return dayKey(d) + '-' + pad(d.getHours()) + pad(d.getMinutes()); }
+  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'account'; }
+  function download(name, text, mime) {
+    var blob = new Blob([text], { type: mime });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+  function csvFor(list) {
+    var q = function (v) { v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var rows = [['date', 'time', 'type', 'pair', 'result', 'amount', 'signed_amount']];
+    list.filter(usable).sort(function (a, b) { return a.ts - b.ts; }).forEach(function (t) {
+      var cash = isCash(t);
+      rows.push([t.day, timeStr(new Date(t.ts), true), cash ? t.type : 'trade', t.pair || '', cash ? '' : t.result,
+        t.amount.toFixed(2), (cash ? cashValue(t) : value(t)).toFixed(2)]);
+    });
+    return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n');
+  }
+  // Full backup: every account (JSON) + the given account's CSV.
+  function downloadBackup(account) {
+    save();
+    var s = stamp(), a = account || acc();
+    download('phoenix-backup-' + s + '.json', JSON.stringify({ app: 'phoenix-trading-journal', kind: 'backup', version: 1,
+      exportedAt: new Date().toISOString(), active: store.active, accounts: store.accounts }, null, 2), 'application/json');
+    setTimeout(function () { download('phoenix-backup-' + slug(a.name) + '-' + s + '.csv', csvFor(a.entries), 'text/csv;charset=utf-8'); }, 350);
+    return 'phoenix-backup-' + s + '.json + .csv';
+  }
+
+  $('exportBtn').addEventListener('click', function () {
+    var list = trades.filter(usable);
+    if (!list.length) { alert('There is nothing to export yet.'); return; }
+    download('trading-journal-' + dayKey(new Date()) + '.csv', csvFor(list), 'text/csv;charset=utf-8');
+  });
+
+  // ======================= Generic dialog =======================
+  var dlg = { onOk: null };
+  function openDialog(o) {
+    $('dlgTitle').textContent = o.title;
+    $('dlgBody').innerHTML = o.body;
+    $('dlgErr').textContent = '';
+    var ok = $('dlgOk');
+    ok.textContent = o.okText || 'OK';
+    ok.className = 'btn-primary' + (o.danger ? ' danger' : '');
+    ok.disabled = false;
+    dlg.onOk = o.onOk; dlg.onCancel = o.onCancel || null;
+    $('dlgOverlay').hidden = false;
+    if (o.onOpen) o.onOpen($('dlgBody'));
+    var f = $('dlgBody').querySelector('input,select'); (f || ok).focus();
+    if (f && f.select && f.type === 'text') f.select();
+  }
+  function closeDialog() { var c = dlg.onCancel; $('dlgOverlay').hidden = true; dlg.onOk = null; dlg.onCancel = null; if (c) c(); }
+  function dlgError(t) { $('dlgErr').textContent = t; }
+  $('dlgCancel').addEventListener('click', closeDialog);
+  $('dlgClose').addEventListener('click', closeDialog);
+  $('dlgOverlay').addEventListener('click', function (e) { if (e.target === this) closeDialog(); });
+  $('dlgForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if ($('dlgOk').disabled || !dlg.onOk) return;
+    if (dlg.onOk($('dlgBody')) !== false) { dlg.onCancel = null; closeDialog(); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('dlgOverlay').hidden) closeDialog(); });
+
+  // ======================= Accounts =======================
+  function nameTaken(n, exceptId) {
+    n = n.trim().toLowerCase();
+    return store.accounts.some(function (a) { return a.id !== exceptId && a.name.trim().toLowerCase() === n; });
+  }
+  function uniqueName(base) { var n = base, i = 2; while (nameTaken(n)) n = base + ' ' + i++; return n; }
+  function renderAccounts() {
+    var sel = $('accountSel');
+    sel.innerHTML = store.accounts.map(function (a) {
+      return '<option value="' + esc(a.id) + '"' + (a.id === store.active ? ' selected' : '') + '>' + esc(a.name) + '</option>';
+    }).join('');
+    var a = acc(), n = a.entries.filter(usable).length;
+    $('accountMeta').textContent = plural(n, 'entry', 'entries') + ' · ' + plural(store.accounts.length, 'account', 'accounts');
+    $('acctPill').textContent = a.name;
+    var del = $('deleteAccountBtn');
+    del.disabled = store.accounts.length < 2;
+    del.title = del.disabled ? 'You need at least one account — create another first' : 'Delete the account "' + a.name + '"';
+  }
+  function switchTo(id) {
+    if (!store.accounts.some(function (a) { return a.id === id; })) return;
+    save();
+    store.active = id; trades = acc().entries;
+    if (openDay) { openDay = null; $('dayOverlay').hidden = true; }
+    allState.limit = PAGE;
+    save(); render();
+  }
+  $('accountSel').addEventListener('change', function () {
+    switchTo(this.value);
+    msg('Switched to account "' + acc().name + '".', true);
+  });
+
+  $('newAccountBtn').addEventListener('click', function () {
+    var cur = acc(), n = cur.entries.filter(usable).length;
+    openDialog({
+      title: 'New account / Reset',
+      okText: 'Download backup & start new account',
+      body: '<p>This starts a <b>fresh, empty account</b> (a clean reset for today, stats and calendar).</p>' +
+        '<p class="keep">Nothing is deleted: your current account <b>"' + esc(cur.name) + '"</b> and its ' + plural(n, 'entry', 'entries') +
+        ' are kept. You can switch back to it any time from the account menu at the top.</p>' +
+        '<label class="f" for="naName">Name of the new account</label>' +
+        '<input id="naName" type="text" maxlength="30" value="' + esc(uniqueName('Real')) + '">' +
+        '<p class="hint">Before switching, a backup of all accounts (JSON) and a CSV of "' + esc(cur.name) + '" will be downloaded.</p>',
+      onOk: function (root) {
+        var name = root.querySelector('#naName').value.trim();
+        if (!name) { dlgError('Please enter a name for the new account.'); return false; }
+        if (nameTaken(name)) { dlgError('An account called "' + name + '" already exists.'); return false; }
+        var files = downloadBackup(cur);
+        var a = { id: newId('acc'), name: name, createdAt: Date.now(), entries: [] };
+        store.accounts.push(a);
+        switchTo(a.id);
+        msg('New account "' + name + '" started. "' + cur.name + '" is kept. Backup downloaded (' + files + ').', true);
+      }
+    });
+  });
+
+  $('deleteAccountBtn').addEventListener('click', function () {
+    if (store.accounts.length < 2) return;
+    var cur = acc(), n = cur.entries.filter(usable).length;
+    openDialog({
+      title: 'Delete account "' + cur.name + '"',
+      okText: 'Download backup & delete',
+      danger: true,
+      body: '<p>This permanently removes the account <b>"' + esc(cur.name) + '"</b> and its ' + plural(n, 'entry', 'entries') + ' from ' + (CLOUD ? 'all your devices' : 'this browser') + '.</p>' +
+        '<p class="hint">A backup (JSON of all accounts + CSV of this account) is downloaded first, so you can restore it with “Import backup”.</p>' +
+        '<label class="f" for="delName">Type <b>' + esc(cur.name) + '</b> to confirm</label>' +
+        '<input id="delName" type="text" maxlength="30" autocomplete="off" placeholder="' + esc(cur.name) + '">',
+      onOpen: function (root) {
+        var ok = $('dlgOk'), inp = root.querySelector('#delName');
+        ok.disabled = true;
+        inp.addEventListener('input', function () { ok.disabled = inp.value.trim() !== cur.name; });
+      },
+      onOk: function (root) {
+        if (root.querySelector('#delName').value.trim() !== cur.name) { dlgError('The name does not match.'); return false; }
+        var files = downloadBackup(cur);
+        store.accounts = store.accounts.filter(function (a) { return a !== cur; });
+        store.active = store.accounts[0].id; trades = acc().entries;
+        allState.limit = PAGE;
+        save(); render();
+        msg('Account "' + cur.name + '" deleted. Backup downloaded (' + files + '). Now showing "' + acc().name + '".', true);
+      }
+    });
+  });
+
+  $('backupBtn').addEventListener('click', function () {
+    var files = downloadBackup(acc());
+    msg('Backup downloaded (' + files + ').', true);
+  });
+
+  // Import backup (JSON): adds missing accounts/entries, never deletes or overwrites anything.
+  $('importBtn').addEventListener('click', function () { $('importFile').value = ''; $('importFile').click(); });
+  $('importFile').addEventListener('change', function () {
+    var file = this.files && this.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try { data = JSON.parse(String(reader.result).replace(/^\ufeff/, '')); } catch (e) { alert('This file is not a valid JSON backup.'); return; }
+      var incoming;
+      if (data && Array.isArray(data.accounts)) incoming = data.accounts;
+      else if (Array.isArray(data)) incoming = [{ id: newId('acc'), name: 'Imported', entries: data }];
+      else { alert('This file is not a Phoenix backup.'); return; }
+      var plan = { newAcc: [], addTo: [], entries: 0, skipped: 0 };
+      incoming.forEach(function (a) {
+        if (!a || !Array.isArray(a.entries)) return;
+        var entries = JSON.parse(JSON.stringify(a.entries.filter(function (t) { return t && typeof t === 'object'; })));
+        migrate(entries);
+        var ex = store.accounts.find(function (x) { return x.id === a.id; });
+        if (ex) {
+          var ids = {}; ex.entries.forEach(function (t) { if (t && t.id) ids[t.id] = 1; });
+          var add = entries.filter(function (t) { return !t.id || !ids[t.id]; });
+          plan.skipped += entries.length - add.length;
+          if (add.length) { plan.addTo.push({ acc: ex, add: add }); plan.entries += add.length; }
+        } else {
+          plan.newAcc.push({ id: a.id || newId('acc'), name: String(a.name || 'Imported'), createdAt: a.createdAt || Date.now(), entries: entries });
+          plan.entries += entries.length;
+        }
+      });
+      if (!plan.newAcc.length && !plan.entries) { alert('Nothing to import — everything in this backup is already here (' + plan.skipped + ' entries).'); return; }
+      openDialog({
+        title: 'Import backup',
+        okText: 'Import',
+        body: '<p>From <b>' + esc(file.name) + '</b>' + (data.exportedAt ? ' (saved ' + esc(new Date(data.exportedAt).toLocaleString('en-GB')) + ')' : '') + ':</p><ul class="imp">' +
+          plan.newAcc.map(function (a) { return '<li>Restore account <b>' + esc(a.name) + '</b> — ' + plural(a.entries.length, 'entry', 'entries') + '</li>'; }).join('') +
+          plan.addTo.map(function (p) { return '<li>Add ' + plural(p.add.length, 'missing entry', 'missing entries') + ' to <b>' + esc(p.acc.name) + '</b></li>'; }).join('') +
+          (plan.skipped ? '<li class="muted">' + plural(plan.skipped, 'entry is', 'entries are') + ' already here and will be left unchanged</li>' : '') +
+          '</ul><p class="hint">Nothing in your current data is deleted or overwritten.</p>',
+        onOk: function () {
+          plan.newAcc.forEach(function (a) { if (nameTaken(a.name)) a.name = uniqueName(a.name + ' (restored)'); store.accounts.push(a); });
+          plan.addTo.forEach(function (p) { p.add.forEach(function (t) { if (!t.id) t.id = newId('imp'); p.acc.entries.push(t); }); });
+          trades = acc().entries;
+          save(); render();
+          msg('Backup imported: ' + plural(plan.entries, 'entry', 'entries') + (plan.newAcc.length ? ', ' + plural(plan.newAcc.length, 'account', 'accounts') + ' restored' : '') + '.', true);
+        }
+      });
+    };
+    reader.readAsText(file);
+  });
+
+  // ======================= All trades =======================
+  var PAGE = 50;
+  var allState = { filter: 'all', q: '', limit: PAGE };
+  var SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function shortDate(d) { return SHORT_DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + SHORT_MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function renderAll() {
+    var q = allState.q.trim().toLowerCase();
+    var list = trades.filter(usable).filter(function (t) {
+      if (allState.filter === 'trades' && !isTrade(t)) return false;
+      if (allState.filter === 'cash' && !isCash(t)) return false;
+      if (q && String(t.pair || '').toLowerCase().indexOf(q) < 0 && nameOf(t).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return b.ts - a.ts; });
+    var shown = list.slice(0, allState.limit);
+    $('allList').innerHTML = shown.length ? shown.map(function (t) {
+      var cash = isCash(t), v = cash ? cashValue(t) : value(t), d = new Date(t.ts);
+      return '<li class="arow' + (cash ? ' is-cash' : '') + '" data-id="' + esc(t.id) + '">' +
+        '<span class="a-date">' + shortDate(d) + '</span>' +
+        '<span class="a-time">' + timeStr(d) + '</span>' +
+        '<span class="a-pair">' + esc(nameOf(t)) + '</span>' +
+        '<span class="a-type"><span class="badge ' + (cash ? 'cash' : t.result) + '">' + labelOf(t) + '</span></span>' +
+        '<span class="a-amt ' + (cash ? 'cashamt' : cls(v)) + '">' + signed(v) + '</span>' +
+        '<span class="a-act"><button class="mini" type="button" data-edit="' + esc(t.id) + '">Edit</button>' +
+        '<button class="del" type="button" data-adel="' + esc(t.id) + '" title="Delete entry" aria-label="Delete entry">×</button></span></li>';
+    }).join('') : '<li class="empty">' + (trades.some(usable) ? 'No entries match this filter.' : 'No entries yet. Confirm a trade above and it will appear here.') + '</li>';
+    $('allCount').textContent = list.length ? 'Showing ' + shown.length + ' of ' + list.length : '';
+    var more = $('allMore');
+    more.hidden = list.length <= shown.length;
+    more.textContent = 'Show more (' + Math.min(PAGE, list.length - shown.length) + ')';
+  }
+  $('allFilter').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-f]'); if (!b) return;
+    allState.filter = b.dataset.f; allState.limit = PAGE;
+    this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+    renderAll();
+  });
+  $('allSearch').addEventListener('input', function () { allState.q = this.value; allState.limit = PAGE; renderAll(); });
+  $('allMore').addEventListener('click', function () { allState.limit += PAGE; renderAll(); });
+  $('allList').addEventListener('click', function (e) {
+    var eb = e.target.closest('[data-edit]'), db = e.target.closest('[data-adel]');
+    var id = (eb || db) && (eb || db).getAttribute(eb ? 'data-edit' : 'data-adel'); if (!id) return;
+    var t = trades.find(function (x) { return x && x.id === id; }); if (!t) return;
+    if (db) {
+      if (!confirm('Delete this ' + (isCash(t) ? labelOf(t).toLowerCase() : 'trade') + '?\n\n' + describe(t))) return;
+      trades = trades.filter(function (x) { return x !== t; });
+      save(); render();
+      return;
+    }
+    openEdit(t);
+  });
+
+  function openEdit(t) {
+    var d = new Date(t.ts), kindNow = isCash(t) ? t.type : t.result;
+    var origDate = t.day, origTime = timeStr(d, true);
+    openDialog({
+      title: 'Edit entry',
+      okText: 'Save changes',
+      body: '<div class="edit-grid">' +
+        '<div><label class="f" for="eAmount">Amount</label><input id="eAmount" type="number" step="any" min="0" inputmode="decimal" value="' + t.amount + '"></div>' +
+        '<div><label class="f" for="ePair">Pair / index</label><input id="ePair" type="text" maxlength="30" value="' + esc(t.pair || '') + '"></div>' +
+        '<div><label class="f" for="eType">Type</label><select id="eType">' +
+          ['win', 'loss', 'deposit', 'withdrawal'].map(function (k) { return '<option value="' + k + '"' + (k === kindNow ? ' selected' : '') + '>' + k.charAt(0).toUpperCase() + k.slice(1) + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div><label class="f" for="eDate">Date</label><input id="eDate" type="date" value="' + t.day + '"></div>' +
+        '<div><label class="f" for="eTime">Time</label><input id="eTime" type="time" step="1" value="' + origTime + '"></div>' +
+        '</div><p class="hint">Deposits and withdrawals don\'t count as P/L; the pair is optional for them.</p>',
+      onOk: function (root) {
+        var amount = parseFloat(String(root.querySelector('#eAmount').value).replace(',', '.'));
+        var kind = root.querySelector('#eType').value, cash = kind === 'deposit' || kind === 'withdrawal';
+        var pair = root.querySelector('#ePair').value.trim();
+        var ds = root.querySelector('#eDate').value, ts = root.querySelector('#eTime').value;
+        var dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ds), tm = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(ts);
+        if (!(amount > 0)) { dlgError('Please enter an amount above 0.'); return false; }
+        if (!cash && !pair) { dlgError('Please enter a pair or index name for a win or loss.'); return false; }
+        if (!dm || !tm) { dlgError('Please enter a valid date and time.'); return false; }
+        var nd = new Date(+dm[1], +dm[2] - 1, +dm[3], +tm[1], +tm[2], +(tm[3] || 0));
+        if (isNaN(nd.getTime())) { dlgError('Please enter a valid date and time.'); return false; }
+        t.amount = r2(amount);
+        t.pair = cash ? pair : pair.toUpperCase();
+        if (cash) { t.type = kind; delete t.result; } else { t.type = 'trade'; t.result = kind; }
+        if (ds !== origDate || ts.slice(0, 8) !== origTime.slice(0, ts.length)) { t.ts = nd.getTime(); t.day = dayKey(nd); }
+        t.editedAt = Date.now();
+        save(); render();
+        msg('Entry updated.', true);
+      }
+    });
+  }
+
+  // ---- bridge for the cloud sync layer ----
+  function settle() {
+    if (!store.accounts.length) store.accounts.push(CLOUD ? { id: 'main', name: 'Main', createdAt: Date.now(), entries: [], placeholder: true } :
+      { id: newId('acc'), name: 'Main', createdAt: Date.now(), entries: [] });
+    if (!store.accounts.some(function (a) { return a.id === store.active; })) {
+      store.active = store.accounts[0].id;
+      if (openDay) { openDay = null; $('dayOverlay').hidden = true; }
+    }
+    trades = acc().entries;
+  }
+  window.__journal = {
+    get: function () { acc().entries = trades; return store; },
+    apply: function (fn) {            // remote changes: mutate in place, then save + redraw
+      acc().entries = trades;
+      if (fn(store) === false) return;
+      settle(); save(); render();
+    },
+    mutate: function (fn) { acc().entries = trades; fn(store); settle(); allState.limit = PAGE; save(); render(); },
+    setKey: function (k, cloud) {     // sign in / out: switch to another cache without reloading
+      AKEY = k; CLOUD = !!cloud; window.__phoenixCloud = CLOUD;
+      if (openDay) { openDay = null; $('dayOverlay').hidden = true; }
+      if (!$('dlgOverlay').hidden) closeDialog();
+      allState.limit = PAGE;
+      load(); render();
+    },
+    openDialog: openDialog, msg: msg, migrate: migrate, render: render
+  };
+
+  load(); render(); tick();
+})();
+</script>
+<script>
+/* Live news: TradingView embed widgets. Kept in its own script block and fully guarded,
+   so any network or widget failure can never affect the journal above. */
+(function () {
+  'use strict';
+  try {
+    var BASE = 'https://s3.tradingview.com/external-embedding/embed-widget-';
+    var TAB_KEY = 'tradingJournal.newsTab';
+    var FEEDS = {
+      gold:    { feedMode: 'symbol', symbol: 'OANDA:XAUUSD' },
+      us500:   { feedMode: 'symbol', symbol: 'SP:SPX' },
+      nas100:  { feedMode: 'symbol', symbol: 'NASDAQ:IXIC' },   // NDX feed is stale in the widget; Nasdaq Composite is current
+      ger40:   { feedMode: 'market', market: 'index',
+                 note: 'TradingView has no DAX/GER40 news feed for free widgets, so this shows all index news (DAX stories appear here when published).' },
+      us30:    { feedMode: 'symbol', symbol: 'DJ:DJI' },
+      indices: { feedMode: 'market', market: 'index' }
+    };
+    var COMMON = { colorTheme: 'dark', isTransparent: true, locale: 'en', width: '100%', height: '100%' };
+    function cfg(extra) { var o = {}, k; for (k in COMMON) o[k] = COMMON[k]; for (k in extra) o[k] = extra[k]; return o; }
+
+    var slots = {
+      tape: { el: document.getElementById('tapeSlot'), name: 'ticker-tape', config: function () {
+        return { symbols: [
+          { proName: 'OANDA:XAUUSD', title: 'Gold' },
+          { proName: 'OANDA:SPX500USD', title: 'US500' },
+          { proName: 'OANDA:NAS100USD', title: 'NAS100' },
+          { proName: 'OANDA:DE30EUR', title: 'GER40' },
+          { proName: 'OANDA:US30USD', title: 'US30' }],
+          showSymbolLogo: true, colorTheme: 'dark', isTransparent: true, displayMode: 'adaptive', locale: 'en' }; } },
+      news: { el: document.getElementById('newsSlot'), name: 'timeline', config: function () {
+        var f = FEEDS[currentTab] || FEEDS.gold, o = { displayMode: 'regular' };
+        for (var k in f) if (k !== 'note') o[k] = f[k];
+        return cfg(o); } },
+      econ: { el: document.getElementById('econSlot'), name: 'events', config: function () {
+        return cfg({ importanceFilter: '1', countryFilter: 'us,eu,de' }); } }
+    };
+
+    var currentTab = 'gold';
+    try { var saved = localStorage.getItem(TAB_KEY); if (saved && FEEDS[saved]) currentTab = saved; } catch (e) {}
+
+    function setStatus() {
+      var s = document.getElementById('netStatus'); if (!s) return;
+      var on = navigator.onLine !== false;
+      s.classList.toggle('off', !on);
+      s.querySelector('span').textContent = on ? 'Live' : 'Offline';
+    }
+
+    function fail(slot) { slot.el.classList.remove('loading'); slot.el.classList.add('failed'); slot.state = 'failed'; }
+
+    function mount(slot) {
+      var el = slot.el; if (!el) return;
+      var host = el.querySelector('.tv-host');
+      var token = {}; slot.token = token; slot.state = 'loading';
+      host.innerHTML = '';
+      el.classList.remove('failed'); el.classList.add('loading');
+      if (navigator.onLine === false) { fail(slot); return; }
+      try {
+        var box = document.createElement('div'); box.className = 'tradingview-widget-container';
+        var inner = document.createElement('div'); inner.className = 'tradingview-widget-container__widget';
+        box.appendChild(inner);
+        var s = document.createElement('script');
+        s.type = 'text/javascript'; s.async = true;
+        s.src = BASE + slot.name + '.js';
+        s.text = JSON.stringify(slot.config());
+        s.onerror = function () { if (slot.token === token) fail(slot); };
+        box.appendChild(s);
+        host.appendChild(box);
+      } catch (e) { fail(slot); return; }
+      var started = Date.now();
+      (function watch() {
+        if (slot.token !== token) return;
+        var frame = host.querySelector('iframe');
+        if (frame) {
+          var done = function () { if (slot.token === token && slot.state === 'loading') { el.classList.remove('loading'); slot.state = 'ok'; } };
+          frame.addEventListener('load', done);
+          setTimeout(done, 6000);
+          return;
+        }
+        if (Date.now() - started > 15000) { fail(slot); return; }
+        setTimeout(watch, 400);
+      })();
+    }
+
+    function selectTab(tab) {
+      if (!FEEDS[tab]) return;
+      currentTab = tab;
+      try { localStorage.setItem(TAB_KEY, tab); } catch (e) {}
+      var btns = document.querySelectorAll('#newsTabs button');
+      for (var i = 0; i < btns.length; i++) btns[i].setAttribute('aria-selected', String(btns[i].dataset.feed === tab));
+      showNote();
+      mount(slots.news);
+    }
+    function showNote() {
+      var n = document.getElementById('newsFeedNote'), f = FEEDS[currentTab];
+      n.textContent = (f && f.note) || ''; n.hidden = !(f && f.note);
+    }
+
+    document.getElementById('newsTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-feed]'); if (b && b.dataset.feed !== currentTab) selectTab(b.dataset.feed);
+    });
+    document.addEventListener('click', function (e) {
+      var r = e.target.closest('[data-retry]'); if (!r) return;
+      var el = r.closest('.tv-slot');
+      for (var k in slots) if (slots[k].el === el) mount(slots[k]);
+    });
+    window.addEventListener('online', function () {
+      setStatus();
+      for (var k in slots) if (slots[k].state === 'failed') mount(slots[k]);
+    });
+    window.addEventListener('offline', setStatus);
+
+    setStatus();
+    var btns = document.querySelectorAll('#newsTabs button');
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute('aria-selected', String(btns[i].dataset.feed === currentTab));
+    showNote();
+    mount(slots.tape); mount(slots.news); mount(slots.econ);
+    window.__news = { slots: slots, selectTab: selectTab };
+  } catch (err) {
+    var f = document.querySelectorAll('.tv-slot');
+    for (var j = 0; j < f.length; j++) { f[j].classList.remove('loading'); f[j].classList.add('failed'); }
+  }
+})();
+</script>
+</body>
+</html>
