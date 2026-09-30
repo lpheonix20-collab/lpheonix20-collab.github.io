@@ -1,6 +1,6 @@
 /* Phoenix service worker: caches the app shell so the journal opens offline.
    Supabase API/Realtime and TradingView are never cached (always live). */
-var VERSION = 'phoenix-v4.0.0';
+var VERSION = 'phoenix-v4.0.1';
 var SB_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js';
 var SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png',
   './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
