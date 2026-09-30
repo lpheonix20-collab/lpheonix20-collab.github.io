@@ -1652,7 +1652,7 @@
     var sel = $('accountSel');
     sel.innerHTML = store.accounts.map(function (a) {
       return '<option value="' + esc(a.id) + '"' + (a.id === store.active ? ' selected' : '') + '>' + esc(a.name) + '</option>';
-    }).join('');
+    }).join('') + '<option value="' + ADD_ACC + '">+ Add account…</option>';
     var a = acc(), n = a.entries.filter(usable).length;
     $('accountMeta').textContent = plural(n, 'entry', 'entries') + ' · ' + plural(store.accounts.length, 'account', 'accounts');
     $('acctPill').textContent = a.name;
@@ -1668,7 +1668,28 @@
     allState.limit = PAGE;
     save(); render();
   }
+  var ADD_ACC = '__add_account__';
+  function addAccount() {
+    openDialog({
+      title: 'Add account',
+      okText: 'Add account',
+      body: '<p>Adds a new, empty account that starts from 0 and switches to it.</p>' +
+        '<p class="keep">Your other accounts and their entries are not changed. Switch between them any time from the account menu.</p>' +
+        '<label class="f" for="addName">Account name</label>' +
+        '<input id="addName" type="text" maxlength="30" value="' + esc(uniqueName('Account')) + '">',
+      onOk: function (root) {
+        var name = root.querySelector('#addName').value.trim();
+        if (!name) { dlgError('Please enter a name for the new account.'); return false; }
+        if (nameTaken(name)) { dlgError('An account called "' + name + '" already exists.'); return false; }
+        var a = { id: newId('acc'), name: name, createdAt: Date.now(), entries: [] };
+        store.accounts.push(a);
+        switchTo(a.id);
+        msg('Account "' + name + '" added and selected. Your other accounts are unchanged.', true);
+      }
+    });
+  }
   $('accountSel').addEventListener('change', function () {
+    if (this.value === ADD_ACC) { this.value = store.active; addAccount(); return; }
     switchTo(this.value);
     msg('Switched to account "' + acc().name + '".', true);
   });
